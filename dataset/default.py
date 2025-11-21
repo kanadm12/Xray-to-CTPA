@@ -24,10 +24,14 @@ class DEFAULTDataset(Dataset):
         self.file_paths = self.get_data_files()
 
     def get_data_files(self):
-        nifti_file_names = os.listdir(self.root_dir)
-        folder_names = [os.path.join(
-            self.root_dir, nifti_file_name) for nifti_file_name in nifti_file_names if nifti_file_names.endsiwth('.nii')]
-        return folder_names
+        """Recursively find all .nii.gz files, excluding those with 'swapped' in the filename."""
+        file_paths = []
+        for root, dirs, files in os.walk(self.root_dir):
+            for file in files:
+                # Only include .nii.gz files and exclude files with 'swapped' in the name
+                if file.endswith('.nii.gz') and 'swapped' not in file.lower():
+                    file_paths.append(os.path.join(root, file))
+        return file_paths
 
     def __len__(self):
         return len(self.file_paths)
@@ -36,4 +40,5 @@ class DEFAULTDataset(Dataset):
         img = tio.ScalarImage(self.file_paths[idx])
         img = self.preprocessing(img)
         img = self.transforms(img)
-        return {'data': img.data.permute(0, -1, 1, 2)}
+        # Return data in correct shape for VQGAN (C, T, H, W)
+        return {'data': img.data}

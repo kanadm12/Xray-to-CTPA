@@ -1,0 +1,3 @@
+name: CUSTOM_DATA
+root_dir: ../datasets/data_new/
+image_channels: 1
