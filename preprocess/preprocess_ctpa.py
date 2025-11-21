@@ -354,7 +354,7 @@ def dicom_get_pixels_hu(scans):
     
     return np.array(image, dtype=np.int16)
 
-def get_high_resolusion_dicom_series(folder_path):
+def get_high_resolution_dicom_series(folder_path):
     series_dict = {}
     for root, dirs, files in os.walk(folder_path):
         for file in files:
@@ -372,8 +372,12 @@ def get_high_resolusion_dicom_series(folder_path):
                 if np.allclose(np.array(series_info['SeriesOrientation']).astype(float), [1., 0., 0., 0., 1., 0.], rtol=1e-3):
                    series_dict[series_uid].append(dicom_file)
 
+    if not series_dict:
+        return []
     longest_series = max(series_dict.values(), key=len)
-    print(series_info['SeriesOrientation'])
+    if longest_series:
+        series_info = get_series_info(longest_series[0])
+        print(series_info['SeriesOrientation'])
     print(len(longest_series))
     return longest_series
 
@@ -397,7 +401,7 @@ def preprocess_ctpa_directory(src_path, dst_path):
             print("processing scan - ", scan)
             if accession_number in ct_xray_manual_accession:
                 continue
-            highres_series = get_high_resolusion_dicom_series(scan)
+            highres_series = get_high_resolution_dicom_series(scan)
 
             slices, attr = dicom_load_scan(highres_series)
             ct = dicom_get_pixels_hu(slices)

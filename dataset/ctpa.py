@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 class CTPADataset(data.Dataset):
     def __init__(self, root='.', target=None, mode="train", augmentation=False):
         if target is None and mode != "infer":
-            raise(RuntimeError("both images and targets must be set if mode is not 'infer'"))
+            raise RuntimeError("both images and targets must be set if mode is not 'infer'")
 
         if target is not None:
             self.data = pd.read_csv(root + target)

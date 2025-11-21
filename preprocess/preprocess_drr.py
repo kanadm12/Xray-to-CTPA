@@ -30,7 +30,6 @@ from scipy.ndimage import zoom
 
 #import vtk
 #from vtk.util import numpy_support
-import cv2
 import glob
 from scipy import ndimage
 import pydicom as dicom

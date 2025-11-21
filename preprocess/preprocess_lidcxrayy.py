@@ -24,10 +24,8 @@ import cv2
 import scipy.ndimage
 import warnings
 from torchvision import transforms
-import torch.nn.functional as F
 import pandas as pd
 import pydicom
-import matplotlib.pyplot as plt
 
 transform_xray = transforms.Compose([
 transforms.ToTensor(),

@@ -24,7 +24,6 @@ import cv2
 import scipy.ndimage
 import warnings
 from torchvision import transforms
-import torch.nn.functional as F
 
 transform_xray = transforms.Compose([
 transforms.ToTensor(),
