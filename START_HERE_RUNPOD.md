@@ -23,7 +23,7 @@ bash setup_and_train.sh
 ```
 
 That's it! The script handles:
-- ✅ Installing dependencies
+- ✅ Installing dependencies (with correct PyTorch from NVIDIA index)
 - ✅ Verifying dataset
 - ✅ Updating configuration
 - ✅ Starting training

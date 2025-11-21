@@ -10,13 +10,14 @@ ERROR: Requires-Python >=3.8,<3.12
 
 ## ⚡ Quick One-Liner Fixes
 
-**Option 1 - Use the new compatible requirements file:**
+**Option 1 - Use the new compatible requirements file with NVIDIA index:**
 ```bash
 cd /workspace/Xray-2CTPA_spartis
-pip install -r requirements-runpod.txt
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements-runpod.txt --no-deps
 ```
 
-**Option 2 - Auto-fix with setup script:**
+**Option 2 - Auto-fix with setup script (Recommended):**
 ```bash
 cd /workspace/Xray-2CTPA_spartis
 bash setup_and_train.sh
@@ -24,7 +25,9 @@ bash setup_and_train.sh
 
 **Option 3 - Manual fix (if Option 1 doesn't work):**
 ```bash
-pip cache purge && pip install --force-reinstall --no-cache-dir -r requirements-runpod.txt
+pip cache purge
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118 --force-reinstall --no-cache-dir
+pip install -r requirements-runpod.txt --no-deps --force-reinstall --no-cache-dir
 ```
 
 Then continue with:
@@ -46,37 +49,46 @@ The issue is that RunPod's default environment might have **Python 3.12**, but t
 
 ### Quick Fix (Recommended)
 
-**Option A: Use the new RunPod requirements file**
+**Option A: Use the NVIDIA index (Most Reliable)**
 
 ```bash
 cd /workspace/Xray-2CTPA_spartis
-pip install -r requirements-runpod.txt
+# Install PyTorch from NVIDIA's CUDA index
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+
+# Then install other dependencies
+pip install -r requirements-runpod.txt --no-deps
 ```
 
-The `requirements-runpod.txt` file is already compatible with Python 3.11/3.12.
-
-**Option B: Use the auto-setup script**
+**Option B: Use the auto-setup script (Easiest)**
 
 ```bash
 bash setup_and_train.sh
 ```
 
-The script automatically detects and uses the correct requirements file.
+The script automatically handles PyTorch installation from the NVIDIA index.
 
 ### Manual Fix (If you know what you're doing)
 
 If you need to manually install:
 
 ```bash
-# Check your Python version first
-python --version
+# Clear pip cache
+pip cache purge
 
-# If Python 3.12, use requirements-runpod.txt
-# If Python 3.11, use requirements-runpod.txt
-# If Python 3.10, use requirements.txt
+# Install PyTorch from NVIDIA's CUDA repository
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 \
+    --index-url https://download.pytorch.org/whl/cu118 \
+    --force-reinstall --no-cache-dir
 
-pip install -r requirements-runpod.txt
+# Then install remaining dependencies (without re-installing PyTorch)
+pip install -r requirements-runpod.txt --no-deps
 ```
+
+**Key Points:**
+- `--index-url https://download.pytorch.org/whl/cu118` - Uses NVIDIA's CUDA 11.8 PyTorch builds
+- `--no-deps` - Tells pip not to reinstall dependencies that are already met
+- `cu118` - Specifies CUDA 11.8 (compatible with most RunPod setups)
 
 ---
 
