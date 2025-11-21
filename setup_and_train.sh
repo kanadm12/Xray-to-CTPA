@@ -50,12 +50,8 @@ pip install -q --upgrade pip setuptools wheel
 echo -e "${YELLOW}Installing PyTorch with CUDA support...${NC}"
 pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118 -q
 
-# Use RunPod-compatible requirements (Python 3.11/3.12 compatible)
-if [ -f "requirements-runpod.txt" ]; then
-    pip install -q -r requirements-runpod.txt --no-deps
-else
-    pip install -q -r requirements.txt --no-deps
-fi
+# ALWAYS use RunPod-compatible requirements (Python 3.11/3.12 compatible)
+pip install -q -r requirements-runpod.txt --no-deps
 echo -e "${GREEN}✓${NC} Dependencies installed"
 
 # ============================================
