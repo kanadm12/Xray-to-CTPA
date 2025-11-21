@@ -7,7 +7,7 @@ import argparse
 
 PREPROCESSING_TRANSORMS = tio.Compose([
     tio.RescaleIntensity(out_min_max=(-1, 1)),
-    tio.CropOrPad(target_shape=(256, 256, 64))  # Doubled depth to preserve more slices
+    tio.CropOrPad(target_shape=(512, 512, 384))  # Full resolution for H200 144GB
 ])
 
 TRAIN_TRANSFORMS = tio.Compose([

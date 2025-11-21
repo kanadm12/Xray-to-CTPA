@@ -13,11 +13,11 @@ precision: 32
 gradient_clip_val: 1.0
 
 
-embedding_dim: 128
-n_codes: 2048
-n_hiddens: 128
-lr: 5e-5
-downsample: [2, 2, 2]
+embedding_dim: 256
+n_codes: 8192
+n_hiddens: 240
+lr: 3e-5
+downsample: [8, 8, 8]
 disc_channels: 64
 disc_layers: 3
 discriminator_iter_start: 100000
