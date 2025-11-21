@@ -114,6 +114,13 @@ class VQGAN(pl.LightningModule):
         vq_output = self.codebook(z)
         x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
 
+        # Check for NaN/Inf in reconstruction
+        if torch.isnan(x_recon).any() or torch.isinf(x_recon).any():
+            print("Warning: NaN/Inf detected in reconstruction, values:")
+            print(f"  x_recon min: {x_recon.min()}, max: {x_recon.max()}, mean: {x_recon.mean()}")
+            # Clamp to valid range
+            x_recon = torch.nan_to_num(x_recon, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         # Clamp reconstructed output to valid range to prevent NaN
         x_recon = torch.clamp(x_recon, -1.0, 1.0)
         
@@ -237,6 +244,11 @@ class VQGAN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch['ct']
         
+        # Validate input data
+        if torch.isnan(x).any() or torch.isinf(x).any():
+            print(f"Warning: Invalid input data in batch {batch_idx}, skipping...")
+            return None
+        
         # Get optimizers
         opt_ae, opt_disc = self.optimizers()
         
@@ -252,6 +264,8 @@ class VQGAN(pl.LightningModule):
         
         opt_ae.zero_grad()
         self.manual_backward(ae_loss)
+        # Clip gradients to prevent explosion
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
         opt_ae.step()
         
         # Train discriminator only if GAN weights are enabled
