@@ -8,9 +8,14 @@ import torch
 import torchvision
 from pytorch_lightning.callbacks import Callback
 try:
-    from lightning.pytorch.utilities.rank_zero import rank_zero_only
+    from pytorch_lightning.utilities.rank_zero import rank_zero_only
 except ImportError:
-    from pytorch_lightning.utilities.distributed import rank_zero_only
+    try:
+        from lightning.pytorch.utilities.rank_zero import rank_zero_only
+    except ImportError:
+        # Fallback: define a no-op decorator if imports fail
+        def rank_zero_only(func):
+            return func
 
 from vq_gan_3d.utils import save_video_grid
 
