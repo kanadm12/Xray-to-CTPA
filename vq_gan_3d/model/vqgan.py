@@ -268,6 +268,16 @@ class VQGAN(pl.LightningModule):
         torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
         opt_ae.step()
         
+        # Log additional metrics every N steps
+        if batch_idx % 100 == 0:
+            with torch.no_grad():
+                # Get reconstruction for metrics
+                _, x_recon_for_metrics, _, _, _, _ = self.forward(x, optimizer_idx=0)
+                mse = F.mse_loss(x_recon_for_metrics, x)
+                psnr = 10 * torch.log10(4.0 / (mse + 1e-8))
+                self.log('train/psnr', psnr, prog_bar=False)
+                self.log('train/mse', mse, prog_bar=False)
+        
         # Train discriminator only if GAN weights are enabled
         if self.image_gan_weight > 0 or self.video_gan_weight > 0:
             discloss = self.forward(x, optimizer_idx=1)
@@ -286,15 +296,40 @@ class VQGAN(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         #x = batch['data']  # TODO: batch['stft']
         x = batch['ct']
-        recon_loss, _, vq_output, perceptual_loss = self.forward(x)
-        self.log('val/recon_loss', recon_loss, prog_bar=True)
+        recon_loss, x_recon, vq_output, perceptual_loss = self.forward(x)
+        
+        # Compute PSNR (Peak Signal-to-Noise Ratio) - higher is better
+        mse = F.mse_loss(x_recon, x)
+        psnr = 10 * torch.log10(4.0 / (mse + 1e-8))  # Range is [-1, 1], so max value is 2, squared = 4
+        
+        # Compute SSIM-like metric (simplified structural similarity)
+        # Using correlation as a proxy for SSIM
+        x_flat = x.view(x.size(0), -1)
+        x_recon_flat = x_recon.view(x_recon.size(0), -1)
+        x_mean = x_flat.mean(dim=1, keepdim=True)
+        x_recon_mean = x_recon_flat.mean(dim=1, keepdim=True)
+        x_centered = x_flat - x_mean
+        x_recon_centered = x_recon_flat - x_recon_mean
+        correlation = (x_centered * x_recon_centered).sum(dim=1) / (
+            torch.sqrt((x_centered ** 2).sum(dim=1) * (x_recon_centered ** 2).sum(dim=1)) + 1e-8
+        )
+        ssim_proxy = correlation.mean()
+        
+        # Codebook usage (percentage of codes being used)
+        # This is already captured in perplexity, but let's log it explicitly
+        codebook_usage = vq_output['perplexity'] / self.n_codes * 100
+        
+        self.log('val/recon_loss', recon_loss, prog_bar=True, sync_dist=True)
+        self.log('val/psnr', psnr, prog_bar=True, sync_dist=True)
+        self.log('val/ssim', ssim_proxy, prog_bar=True, sync_dist=True)
         # Ensure perceptual_loss is scalar
         if isinstance(perceptual_loss, torch.Tensor) and perceptual_loss.dim() > 0:
             perceptual_loss = perceptual_loss.mean()
-        self.log('val/perceptual_loss', perceptual_loss, prog_bar=True)
-        self.log('val/perplexity', vq_output['perplexity'], prog_bar=True)
+        self.log('val/perceptual_loss', perceptual_loss, sync_dist=True)
+        self.log('val/perplexity', vq_output['perplexity'], sync_dist=True)
+        self.log('val/codebook_usage_%', codebook_usage, sync_dist=True)
         self.log('val/commitment_loss',
-                 vq_output['commitment_loss'], prog_bar=True)
+                 vq_output['commitment_loss'], sync_dist=True)
 
     def configure_optimizers(self):
         lr = self.cfg.model.lr
