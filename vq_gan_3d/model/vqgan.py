@@ -255,6 +255,9 @@ class VQGAN(pl.LightningModule):
         x = batch['ct']
         recon_loss, _, vq_output, perceptual_loss = self.forward(x)
         self.log('val/recon_loss', recon_loss, prog_bar=True)
+        # Ensure perceptual_loss is scalar
+        if isinstance(perceptual_loss, torch.Tensor) and perceptual_loss.dim() > 0:
+            perceptual_loss = perceptual_loss.mean()
         self.log('val/perceptual_loss', perceptual_loss, prog_bar=True)
         self.log('val/perplexity', vq_output['perplexity'], prog_bar=True)
         self.log('val/commitment_loss',
