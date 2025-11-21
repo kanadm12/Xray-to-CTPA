@@ -133,43 +133,48 @@ class VQGAN(pl.LightningModule):
             # Autoencoder - train the "generator"
 
             # Perceptual loss
-            perceptual_loss = 0
+            perceptual_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
             if self.perceptual_weight > 0:
                 perceptual_loss = self.perceptual_model(
                     frames, frames_recon).mean() * self.perceptual_weight
 
             # Discriminator loss (turned on after a certain epoch)
-            logits_image_fake, pred_image_fake = self.image_discriminator(
-                frames_recon)
-            logits_video_fake, pred_video_fake = self.video_discriminator(
-                x_recon)
-            g_image_loss = -torch.mean(logits_image_fake)
-            g_video_loss = -torch.mean(logits_video_fake)
-            g_loss = self.image_gan_weight*g_image_loss + self.video_gan_weight*g_video_loss
-            disc_factor = adopt_weight(
-                self.global_step, threshold=self.cfg.model.discriminator_iter_start)
-            aeloss = disc_factor * g_loss
+            aeloss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+            if self.image_gan_weight > 0 or self.video_gan_weight > 0:
+                logits_image_fake, pred_image_fake = self.image_discriminator(
+                    frames_recon)
+                logits_video_fake, pred_video_fake = self.video_discriminator(
+                    x_recon)
+                g_image_loss = -torch.mean(logits_image_fake)
+                g_video_loss = -torch.mean(logits_video_fake)
+                g_loss = self.image_gan_weight*g_image_loss + self.video_gan_weight*g_video_loss
+                disc_factor = adopt_weight(
+                    self.global_step, threshold=self.cfg.model.discriminator_iter_start)
+                aeloss = disc_factor * g_loss
 
             # GAN feature matching loss - tune features such that we get the same prediction result on the discriminator
-            image_gan_feat_loss = 0
-            video_gan_feat_loss = 0
-            feat_weights = 4.0 / (3 + 1)
-            if self.image_gan_weight > 0:
-                logits_image_real, pred_image_real = self.image_discriminator(
-                    frames)
-                for i in range(len(pred_image_fake)-1):
-                    image_gan_feat_loss += feat_weights * \
-                        F.l1_loss(pred_image_fake[i], pred_image_real[i].detach(
-                        )) * (self.image_gan_weight > 0)
-            if self.video_gan_weight > 0:
-                logits_video_real, pred_video_real = self.video_discriminator(
-                    x)
-                for i in range(len(pred_video_fake)-1):
-                    video_gan_feat_loss += feat_weights * \
-                        F.l1_loss(pred_video_fake[i], pred_video_real[i].detach(
-                        )) * (self.video_gan_weight > 0)
-            gan_feat_loss = disc_factor * self.gan_feat_weight * \
-                (image_gan_feat_loss + video_gan_feat_loss)
+            gan_feat_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+            if self.image_gan_weight > 0 or self.video_gan_weight > 0:
+                image_gan_feat_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+                video_gan_feat_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+            if self.image_gan_weight > 0 or self.video_gan_weight > 0:
+                image_gan_feat_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+                video_gan_feat_loss = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+                feat_weights = 4.0 / (3 + 1)
+                if self.image_gan_weight > 0:
+                    logits_image_real, pred_image_real = self.image_discriminator(
+                        frames)
+                    for i in range(len(pred_image_fake)-1):
+                        image_gan_feat_loss += feat_weights * \
+                            F.l1_loss(pred_image_fake[i], pred_image_real[i].detach())
+                if self.video_gan_weight > 0:
+                    logits_video_real, pred_video_real = self.video_discriminator(
+                        x)
+                    for i in range(len(pred_video_fake)-1):
+                        video_gan_feat_loss += feat_weights * \
+                            F.l1_loss(pred_video_fake[i], pred_video_real[i].detach())
+                gan_feat_loss = disc_factor * self.gan_feat_weight * \
+                    (image_gan_feat_loss + video_gan_feat_loss)
 
             self.log("train/g_image_loss", g_image_loss,
                      logger=True, on_step=True, on_epoch=True)
@@ -192,7 +197,10 @@ class VQGAN(pl.LightningModule):
             return recon_loss, x_recon, vq_output, aeloss, perceptual_loss, gan_feat_loss
 
         if optimizer_idx == 1:
-            # Train discriminator
+            # Train discriminator - skip if no GAN weights
+            if self.image_gan_weight <= 0 and self.video_gan_weight <= 0:
+                return torch.tensor(0.0, device=x.device, dtype=x.dtype)
+                
             logits_image_real, _ = self.image_discriminator(frames.detach())
             logits_video_real, _ = self.video_discriminator(x.detach())
 
