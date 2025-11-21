@@ -162,5 +162,4 @@ class VideoLogger(Callback):
         self.log_vid(pl_module, batch, batch_idx, split="train")
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):#, dataloader_idx):
-        # Skip video logging during validation to avoid ffmpeg dependency
-        pass
+        self.log_vid(pl_module, batch, batch_idx, split="val")
