@@ -33,16 +33,16 @@ def get_dataset(cfg):
         return train_dataset, val_dataset, sampler
     if cfg.dataset.name == 'DEFAULT':
         train_dataset = DEFAULTDataset(
-            root_dir=cfg.dataset.root_dir)
+            root_dir=cfg.dataset.root_dir, mode='train', train_split=0.8, augmentation=True)
         val_dataset = DEFAULTDataset(
-            root_dir=cfg.dataset.root_dir)
+            root_dir=cfg.dataset.root_dir, mode='val', train_split=0.8, augmentation=False)
         sampler = None
         return train_dataset, val_dataset, sampler
     if cfg.dataset.name == 'CUSTOM_DATA':
         train_dataset = DEFAULTDataset(
-            root_dir=cfg.dataset.root_dir)
+            root_dir=cfg.dataset.root_dir, mode='train', train_split=0.8, augmentation=True)
         val_dataset = DEFAULTDataset(
-            root_dir=cfg.dataset.root_dir)
+            root_dir=cfg.dataset.root_dir, mode='val', train_split=0.8, augmentation=False)
         sampler = None
         return train_dataset, val_dataset, sampler
     raise ValueError(f'{cfg.dataset.name} Dataset is not available')

@@ -16,12 +16,26 @@ TRAIN_TRANSFORMS = tio.Compose([
 
 
 class DEFAULTDataset(Dataset):
-    def __init__(self, root_dir: str):
+    def __init__(self, root_dir: str, mode: str = 'train', train_split: float = 0.8, augmentation: bool = True):
         super().__init__()
         self.root_dir = root_dir
+        self.mode = mode
         self.preprocessing = PREPROCESSING_TRANSORMS
-        self.transforms = TRAIN_TRANSFORMS
+        self.transforms = TRAIN_TRANSFORMS if (augmentation and mode == 'train') else tio.Compose([])
         self.file_paths = self.get_data_files()
+        
+        # Split data into train/val
+        import random
+        random.seed(1234)  # For reproducibility
+        random.shuffle(self.file_paths)
+        split_idx = int(len(self.file_paths) * train_split)
+        
+        if mode == 'train':
+            self.file_paths = self.file_paths[:split_idx]
+        elif mode == 'val':
+            self.file_paths = self.file_paths[split_idx:]
+        
+        print(f"{mode.upper()} dataset: {len(self.file_paths)} files")
 
     def get_data_files(self):
         """Recursively find all .nii and .nii.gz files, excluding those with 'swapped' in the filename."""
