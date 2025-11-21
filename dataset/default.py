@@ -7,8 +7,13 @@ import argparse
 
 PREPROCESSING_TRANSORMS = tio.Compose([
     tio.RescaleIntensity(out_min_max=(-1, 1)),
-    tio.CropOrPad(target_shape=(256, 256, 32))
+    tio.CropOrPad(target_shape=(384, 384, 48))  # Increased from 256x256x32 for more detail
 ])
+
+# Alternative: No cropping (use original size - comment line above, uncomment below)
+# PREPROCESSING_TRANSORMS = tio.Compose([
+#     tio.RescaleIntensity(out_min_max=(-1, 1)),
+# ])
 
 TRAIN_TRANSFORMS = tio.Compose([
     tio.RandomFlip(axes=(1), flip_probability=0.5),
