@@ -5,8 +5,21 @@ import glob
 import os
 import torchio as tio
 
-# Find all .nii and .nii.gz files
-data_dir = '../datasets'  # Adjust if needed
+# Find all .nii and .nii.gz files - try multiple common locations
+possible_dirs = ['./datasets', '../datasets', '/workspace/datasets', './']
+data_dir = None
+
+for d in possible_dirs:
+    if os.path.exists(d):
+        test_files = glob.glob(f'{d}/**/*.nii.gz', recursive=True) or glob.glob(f'{d}/**/*.nii', recursive=True)
+        if test_files:
+            data_dir = d
+            break
+
+if not data_dir:
+    print("Searching for .nii files in current directory and common locations...")
+    data_dir = '.'
+
 files = glob.glob(f'{data_dir}/**/*.nii.gz', recursive=True)
 if not files:
     files = glob.glob(f'{data_dir}/**/*.nii', recursive=True)
