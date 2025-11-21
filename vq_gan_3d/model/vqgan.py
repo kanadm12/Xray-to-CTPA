@@ -176,14 +176,15 @@ class VQGAN(pl.LightningModule):
                 gan_feat_loss = disc_factor * self.gan_feat_weight * \
                     (image_gan_feat_loss + video_gan_feat_loss)
 
-            self.log("train/g_image_loss", g_image_loss,
-                     logger=True, on_step=True, on_epoch=True)
-            self.log("train/g_video_loss", g_video_loss,
-                     logger=True, on_step=True, on_epoch=True)
-            self.log("train/image_gan_feat_loss", image_gan_feat_loss,
-                     logger=True, on_step=True, on_epoch=True)
-            self.log("train/video_gan_feat_loss", video_gan_feat_loss,
-                     logger=True, on_step=True, on_epoch=True)
+            if self.image_gan_weight > 0 or self.video_gan_weight > 0:
+                self.log("train/g_image_loss", g_image_loss,
+                         logger=True, on_step=True, on_epoch=True)
+                self.log("train/g_video_loss", g_video_loss,
+                         logger=True, on_step=True, on_epoch=True)
+                self.log("train/image_gan_feat_loss", image_gan_feat_loss,
+                         logger=True, on_step=True, on_epoch=True)
+                self.log("train/video_gan_feat_loss", video_gan_feat_loss,
+                         logger=True, on_step=True, on_epoch=True)
             self.log("train/perceptual_loss", perceptual_loss,
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log("train/recon_loss", recon_loss, prog_bar=True,
