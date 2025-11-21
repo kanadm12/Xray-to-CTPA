@@ -114,6 +114,9 @@ class VQGAN(pl.LightningModule):
         vq_output = self.codebook(z)
         x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
 
+        # Clamp reconstructed output to valid range to prevent NaN
+        x_recon = torch.clamp(x_recon, -1.0, 1.0)
+        
         recon_loss = F.l1_loss(x_recon, x) * self.l1_weight
 
         # Selects one random 2D image from each 3D Image
@@ -226,7 +229,7 @@ class VQGAN(pl.LightningModule):
         return recon_loss, x_recon, vq_output, perceptual_loss
 
     def training_step(self, batch, batch_idx):
-        #x = batch['data']
+    def training_step(self, batch, batch_idx):
         x = batch['ct']
         
         # Get optimizers
@@ -237,12 +240,22 @@ class VQGAN(pl.LightningModule):
         commitment_loss = vq_output['commitment_loss']
         ae_loss = recon_loss + commitment_loss + aeloss + perceptual_loss + gan_feat_loss
         
+        # Skip NaN batches
+        if torch.isnan(ae_loss):
+            print(f"Warning: NaN detected in batch {batch_idx}, skipping...")
+            return None
+        
         opt_ae.zero_grad()
         self.manual_backward(ae_loss)
         opt_ae.step()
         
         # Train discriminator
         discloss = self.forward(x, optimizer_idx=1)
+        
+        # Skip NaN batches
+        if torch.isnan(discloss):
+            print(f"Warning: NaN detected in discriminator batch {batch_idx}, skipping...")
+            return None
         
         opt_disc.zero_grad()
         self.manual_backward(discloss)
