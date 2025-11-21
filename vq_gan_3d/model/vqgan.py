@@ -49,6 +49,8 @@ class VQGAN(pl.LightningModule):
         self.cfg = cfg
         self.embedding_dim = cfg.model.embedding_dim
         self.n_codes = cfg.model.n_codes
+        # PyTorch Lightning 2.x requires manual optimization for multiple optimizers
+        self.automatic_optimization = False
 
         self.encoder = Encoder(cfg.model.n_hiddens, cfg.model.downsample,
                                cfg.dataset.image_channels, cfg.model.norm_type, cfg.model.padding_type,
@@ -223,18 +225,30 @@ class VQGAN(pl.LightningModule):
             frames, frames_recon) * self.perceptual_weight
         return recon_loss, x_recon, vq_output, perceptual_loss
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         #x = batch['data']
         x = batch['ct']
-        if optimizer_idx == 0:
-            recon_loss, _, vq_output, aeloss, perceptual_loss, gan_feat_loss = self.forward(
-                x, optimizer_idx)
-            commitment_loss = vq_output['commitment_loss']
-            loss = recon_loss + commitment_loss + aeloss + perceptual_loss + gan_feat_loss
-        if optimizer_idx == 1:
-            discloss = self.forward(x, optimizer_idx)
-            loss = discloss
-        return loss
+        
+        # Get optimizers
+        opt_ae, opt_disc = self.optimizers()
+        
+        # Train autoencoder
+        recon_loss, _, vq_output, aeloss, perceptual_loss, gan_feat_loss = self.forward(x, optimizer_idx=0)
+        commitment_loss = vq_output['commitment_loss']
+        ae_loss = recon_loss + commitment_loss + aeloss + perceptual_loss + gan_feat_loss
+        
+        opt_ae.zero_grad()
+        self.manual_backward(ae_loss)
+        opt_ae.step()
+        
+        # Train discriminator
+        discloss = self.forward(x, optimizer_idx=1)
+        
+        opt_disc.zero_grad()
+        self.manual_backward(discloss)
+        opt_disc.step()
+        
+        return ae_loss
 
     def validation_step(self, batch, batch_idx):
         #x = batch['data']  # TODO: batch['stft']
