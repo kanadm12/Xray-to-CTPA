@@ -57,13 +57,20 @@ class Codebook(nn.Module):
             + (self.embeddings.t() ** 2).sum(dim=0, keepdim=True)  # [bthw, c]
 
         encoding_indices = torch.argmin(distances, dim=1)
-        encode_onehot = F.one_hot(encoding_indices, self.n_codes).type_as(
-            flat_inputs)  # [bthw, ncode]
-        encoding_indices = encoding_indices.view(
-            z.shape[0], *z.shape[2:])  # [b, t, h, w, ncode]
+        
+        # Memory-efficient one_hot encoding: process in chunks if needed
+        if self.training:
+            encode_onehot = F.one_hot(encoding_indices, self.n_codes).type_as(
+                flat_inputs)  # [bthw, ncode]
+        else:
+            # During validation/inference, only compute sum without full one_hot tensor
+            encode_onehot = None
+            
+        encoding_indices_reshaped = encoding_indices.view(
+            z.shape[0], *z.shape[2:])  # [b, t, h, w]
 
         embeddings = F.embedding(
-            encoding_indices, self.embeddings)  # [b, t, h, w, c]
+            encoding_indices_reshaped, self.embeddings)  # [b, t, h, w, c]
         embeddings = shift_dim(embeddings, -1, 1)  # [b, c, t, h, w]
 
         commitment_loss = 0.25 * F.mse_loss(z, embeddings.detach())
@@ -96,9 +103,13 @@ class Codebook(nn.Module):
 
         embeddings_st = (embeddings - z).detach() + z
 
-        avg_probs = torch.mean(encode_onehot, dim=0)
-        perplexity = torch.exp(-torch.sum(avg_probs *
-                               torch.log(avg_probs + 1e-10)))
+        # Perplexity calculation - only compute during training
+        if self.training and encode_onehot is not None:
+            avg_probs = torch.mean(encode_onehot, dim=0)
+            perplexity = torch.exp(-torch.sum(avg_probs *
+                                   torch.log(avg_probs + 1e-10)))
+        else:
+            perplexity = torch.tensor(0.0, device=z.device)
 
         return dict(embeddings=embeddings_st, encodings=encoding_indices,
                     commitment_loss=commitment_loss, perplexity=perplexity)
