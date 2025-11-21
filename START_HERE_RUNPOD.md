@@ -4,6 +4,13 @@
 
 After cloning the repo on RunPod, follow these **4 simple steps**:
 
+### Step 0: Check Python Version (Important!)
+```bash
+python --version
+# If Python 3.12 or 3.11, continue to Step 1
+# If Python 3.10 or lower, you might need adjustments
+```
+
 ### Step 1: Upload Your Dataset
 - Use RunPod Files GUI to upload `data_new/` folder to `/workspace/datasets/`
 - **OR** download from cloud using provided commands
@@ -40,6 +47,7 @@ When done, download `lightning_logs/` folder via RunPod Files
 | Show me a quick reference | `RUNPOD_QUICK_START.md` |
 | I want to see a flowchart/visual | `RUNPOD_VISUAL_GUIDE.md` |
 | I need troubleshooting help | See "Phase 5" in `RUNPOD_TRAINING_GUIDE.md` |
+| Getting Python/dependency errors | `RUNPOD_FIX_PYTHON_DEPENDENCIES.md` ← **Start here if error** |
 | How do I setup my custom dataset? | `CUSTOM_DATASET_TRAINING.md` |
 
 ---
@@ -67,6 +75,9 @@ When done, download `lightning_logs/` folder via RunPod Files
 ---
 
 ## 🆘 Quick Troubleshooting
+
+**"ERROR: Could not find a version that satisfies the requirement torch==2.6.0+cu118"**
+→ See `RUNPOD_FIX_PYTHON_DEPENDENCIES.md` - Use `requirements-runpod.txt` instead
 
 **"Dataset not found"**
 → Make sure it's at `/workspace/datasets/data_new/`

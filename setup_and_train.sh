@@ -45,7 +45,12 @@ fi
 echo -e "${YELLOW}[2/7] Installing Python dependencies...${NC}"
 cd $REPO_DIR
 pip install -q --upgrade pip setuptools wheel
-pip install -q -r requirements.txt
+# Use RunPod-compatible requirements (Python 3.11/3.12 compatible)
+if [ -f "requirements-runpod.txt" ]; then
+    pip install -q -r requirements-runpod.txt
+else
+    pip install -q -r requirements.txt
+fi
 echo -e "${GREEN}✓${NC} Dependencies installed"
 
 # ============================================
