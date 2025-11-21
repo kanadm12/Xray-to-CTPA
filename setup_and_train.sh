@@ -44,7 +44,10 @@ fi
 # ============================================
 echo -e "${YELLOW}[2/7] Installing Python dependencies...${NC}"
 cd $REPO_DIR
-pip install -q --upgrade pip setuptools wheel
+
+# Upgrade pip, setuptools, and wheel FIRST - critical for Python 3.12
+echo -e "${YELLOW}Upgrading build tools for Python 3.12...${NC}"
+pip install --upgrade pip setuptools wheel -q
 
 # Install PyTorch from NVIDIA index first (this handles CUDA correctly)
 echo -e "${YELLOW}Installing PyTorch with CUDA support...${NC}"
