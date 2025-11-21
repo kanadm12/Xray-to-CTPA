@@ -8,13 +8,45 @@ ERROR: Could not find a version that satisfies the requirement torch==2.6.0+cu11
 ERROR: Requires-Python >=3.8,<3.12
 ```
 
-## 🟢 Solution
+## ⚡ Quick One-Liner Fixes
+
+**Option 1 - Use the new compatible requirements file:**
+```bash
+cd /workspace/Xray-2CTPA_spartis
+pip install -r requirements-runpod.txt
+```
+
+**Option 2 - Auto-fix with setup script:**
+```bash
+cd /workspace/Xray-2CTPA_spartis
+bash setup_and_train.sh
+```
+
+**Option 3 - Manual fix (if Option 1 doesn't work):**
+```bash
+pip cache purge && pip install --force-reinstall --no-cache-dir -r requirements-runpod.txt
+```
+
+Then continue with:
+```bash
+bash setup_and_train.sh
+```
+
+Or manually:
+```bash
+export PYTHONPATH=$PWD
+python train/train_vqgan.py dataset=custom_data model=vq_gan_3d model.gpus=1 model.batch_size=2
+```
+
+---
+
+## 🟢 Detailed Solution
 
 The issue is that RunPod's default environment might have **Python 3.12**, but the original `requirements.txt` specifies packages for **Python 3.11 and below**.
 
 ### Quick Fix (Recommended)
 
-**Option 1: Use the new RunPod requirements file**
+**Option A: Use the new RunPod requirements file**
 
 ```bash
 cd /workspace/Xray-2CTPA_spartis
@@ -23,7 +55,7 @@ pip install -r requirements-runpod.txt
 
 The `requirements-runpod.txt` file is already compatible with Python 3.11/3.12.
 
-**Option 2: Use the auto-setup script**
+**Option B: Use the auto-setup script**
 
 ```bash
 bash setup_and_train.sh
