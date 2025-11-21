@@ -40,5 +40,5 @@ class DEFAULTDataset(Dataset):
         img = tio.ScalarImage(self.file_paths[idx])
         img = self.preprocessing(img)
         img = self.transforms(img)
-        # Return data in correct shape for VQGAN (C, T, H, W)
-        return {'data': img.data}
+        # Return data with 'ct' key expected by VQGAN model (C, T, H, W)
+        return {'ct': img.data}
