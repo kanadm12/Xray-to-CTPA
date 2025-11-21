@@ -229,7 +229,6 @@ class VQGAN(pl.LightningModule):
         return recon_loss, x_recon, vq_output, perceptual_loss
 
     def training_step(self, batch, batch_idx):
-    def training_step(self, batch, batch_idx):
         x = batch['ct']
         
         # Get optimizers
