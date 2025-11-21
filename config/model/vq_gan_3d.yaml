@@ -16,15 +16,15 @@ gradient_clip_val: 1.0
 embedding_dim: 128
 n_codes: 2048
 n_hiddens: 128
-lr: 3e-4
+lr: 1e-4
 downsample: [2, 2, 2]
 disc_channels: 64
 disc_layers: 3
-discriminator_iter_start: 50000
+discriminator_iter_start: 100000
 disc_loss_type: hinge
-image_gan_weight: 1.0
-video_gan_weight: 1.0
-l1_weight: 4.0
+image_gan_weight: 0.0
+video_gan_weight: 0.0
+l1_weight: 1.0
 gan_feat_weight: 0.0
 perceptual_weight: 0.0
 i3d_feat: False
