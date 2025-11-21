@@ -69,22 +69,23 @@ def run(cfg: DictConfig):
                       cfg.model.resume_from_checkpoint)
 
     # PyTorch Lightning 2.x uses 'devices' and 'accelerator' instead of 'gpus'
-    strategy = None
+    trainer_kwargs = {
+        'devices': cfg.model.gpus,
+        'accelerator': 'gpu' if cfg.model.gpus > 0 else 'cpu',
+        'accumulate_grad_batches': cfg.model.accumulate_grad_batches,
+        'default_root_dir': cfg.model.default_root_dir,
+        'callbacks': callbacks,
+        'max_steps': cfg.model.max_steps,
+        'max_epochs': cfg.model.max_epochs,
+        'precision': cfg.model.precision,
+        'gradient_clip_val': cfg.model.gradient_clip_val,
+    }
+    
+    # Only add strategy for multi-GPU training
     if cfg.model.gpus > 1:
-        strategy = 'ddp'
+        trainer_kwargs['strategy'] = 'ddp'
 
-    trainer = pl.Trainer(
-        devices=cfg.model.gpus,
-        accelerator='gpu' if cfg.model.gpus > 0 else 'cpu',
-        strategy=strategy,
-        accumulate_grad_batches=cfg.model.accumulate_grad_batches,
-        default_root_dir=cfg.model.default_root_dir,
-        callbacks=callbacks,
-        max_steps=cfg.model.max_steps,
-        max_epochs=cfg.model.max_epochs,
-        precision=cfg.model.precision,
-        gradient_clip_val=cfg.model.gradient_clip_val,
-    )
+    trainer = pl.Trainer(**trainer_kwargs)
 
     trainer.fit(model, train_dataloader, val_dataloader)
 
