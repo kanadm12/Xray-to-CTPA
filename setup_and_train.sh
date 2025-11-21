@@ -48,7 +48,7 @@ pip install -q --upgrade pip setuptools wheel
 
 # Install PyTorch from NVIDIA index first (this handles CUDA correctly)
 echo -e "${YELLOW}Installing PyTorch with CUDA support...${NC}"
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118 -q
+pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118 -q
 
 # Use RunPod-compatible requirements (Python 3.11/3.12 compatible)
 if [ -f "requirements-runpod.txt" ]; then

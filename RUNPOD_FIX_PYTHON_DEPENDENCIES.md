@@ -13,7 +13,7 @@ ERROR: Requires-Python >=3.8,<3.12
 **Option 1 - Use the new compatible requirements file with NVIDIA index:**
 ```bash
 cd /workspace/Xray-2CTPA_spartis
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements-runpod.txt --no-deps
 ```
 
@@ -26,7 +26,7 @@ bash setup_and_train.sh
 **Option 3 - Manual fix (if Option 1 doesn't work):**
 ```bash
 pip cache purge
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118 --force-reinstall --no-cache-dir
+pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118 --force-reinstall --no-cache-dir
 pip install -r requirements-runpod.txt --no-deps --force-reinstall --no-cache-dir
 ```
 
@@ -53,8 +53,8 @@ The issue is that RunPod's default environment might have **Python 3.12**, but t
 
 ```bash
 cd /workspace/Xray-2CTPA_spartis
-# Install PyTorch from NVIDIA's CUDA index
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+# Install PyTorch from NVIDIA's CUDA index (latest stable)
+pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 
 # Then install other dependencies
 pip install -r requirements-runpod.txt --no-deps
@@ -76,8 +76,8 @@ If you need to manually install:
 # Clear pip cache
 pip cache purge
 
-# Install PyTorch from NVIDIA's CUDA repository
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 \
+# Install PyTorch from NVIDIA's CUDA repository (2.2.0 is latest stable for cu118)
+pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 \
     --index-url https://download.pytorch.org/whl/cu118 \
     --force-reinstall --no-cache-dir
 
@@ -89,6 +89,7 @@ pip install -r requirements-runpod.txt --no-deps
 - `--index-url https://download.pytorch.org/whl/cu118` - Uses NVIDIA's CUDA 11.8 PyTorch builds
 - `--no-deps` - Tells pip not to reinstall dependencies that are already met
 - `cu118` - Specifies CUDA 11.8 (compatible with most RunPod setups)
+- `2.2.0` - Latest stable PyTorch with CUDA 11.8 support
 
 ---
 
