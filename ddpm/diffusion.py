@@ -12,7 +12,8 @@ from pathlib import Path
 from torch.optim import Adam
 import torch.optim as optim
 from torchvision import transforms as T, utils
-from torch.amp import autocast, GradScaler
+from torch.amp import autocast
+from torch.cuda.amp import GradScaler
 from PIL import Image
 
 from tqdm import tqdm
