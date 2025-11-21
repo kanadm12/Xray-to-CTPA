@@ -198,10 +198,7 @@ class VQGAN(pl.LightningModule):
             return recon_loss, x_recon, vq_output, aeloss, perceptual_loss, gan_feat_loss
 
         if optimizer_idx == 1:
-            # Train discriminator - skip if no GAN weights
-            if self.image_gan_weight <= 0 and self.video_gan_weight <= 0:
-                return torch.tensor(0.0, device=x.device, dtype=x.dtype)
-                
+            # Train discriminator
             logits_image_real, _ = self.image_discriminator(frames.detach())
             logits_video_real, _ = self.video_discriminator(x.detach())
 
@@ -257,17 +254,18 @@ class VQGAN(pl.LightningModule):
         self.manual_backward(ae_loss)
         opt_ae.step()
         
-        # Train discriminator
-        discloss = self.forward(x, optimizer_idx=1)
-        
-        # Skip NaN batches
-        if torch.isnan(discloss):
-            print(f"Warning: NaN detected in discriminator batch {batch_idx}, skipping...")
-            return None
-        
-        opt_disc.zero_grad()
-        self.manual_backward(discloss)
-        opt_disc.step()
+        # Train discriminator only if GAN weights are enabled
+        if self.image_gan_weight > 0 or self.video_gan_weight > 0:
+            discloss = self.forward(x, optimizer_idx=1)
+            
+            # Skip NaN batches
+            if torch.isnan(discloss):
+                print(f"Warning: NaN detected in discriminator batch {batch_idx}, skipping...")
+                return None
+            
+            opt_disc.zero_grad()
+            self.manual_backward(discloss)
+            opt_disc.step()
         
         return ae_loss
 
