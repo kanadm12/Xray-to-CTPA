@@ -24,12 +24,12 @@ class DEFAULTDataset(Dataset):
         self.file_paths = self.get_data_files()
 
     def get_data_files(self):
-        """Recursively find all .nii.gz files, excluding those with 'swapped' in the filename."""
+        """Recursively find all .nii and .nii.gz files, excluding those with 'swapped' in the filename."""
         file_paths = []
         for root, dirs, files in os.walk(self.root_dir):
             for file in files:
-                # Only include .nii.gz files and exclude files with 'swapped' in the name
-                if file.endswith('.nii.gz') and 'swapped' not in file.lower():
+                # Include both .nii and .nii.gz files, exclude files with 'swapped' in the name
+                if (file.endswith('.nii.gz') or file.endswith('.nii')) and 'swapped' not in file.lower():
                     file_paths.append(os.path.join(root, file))
         return file_paths
 

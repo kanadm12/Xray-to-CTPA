@@ -67,7 +67,7 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # Step 3: Verify Dataset Exists
 # ============================================
 echo -e "${YELLOW}[3/7] Verifying dataset...${NC}"
-if [ ! -d "$DATASET_DIR" ] || [ -z "$(find $DATASET_DIR -name "*.nii.gz" 2>/dev/null)" ]; then
+if [ ! -d "$DATASET_DIR" ] || [ -z "$(find $DATASET_DIR \( -name "*.nii.gz" -o -name "*.nii" \) 2>/dev/null)" ]; then
     echo -e "${RED}✗${NC} Dataset not found at: $DATASET_DIR"
     echo ""
     echo -e "${YELLOW}The datasets folder should be located at:${NC}"
@@ -88,9 +88,9 @@ if [ ! -d "$DATASET_DIR" ] || [ -z "$(find $DATASET_DIR -name "*.nii.gz" 2>/dev/
     exit 1
 fi
 
-# Count files
-FILE_COUNT=$(find $DATASET_DIR -name "*.nii.gz" ! -name "*swapped*" | wc -l)
-TOTAL_FILES=$(find $DATASET_DIR -name "*.nii.gz" | wc -l)
+# Count files (both .nii and .nii.gz)
+FILE_COUNT=$(find $DATASET_DIR \( -name "*.nii.gz" -o -name "*.nii" \) ! -name "*swapped*" | wc -l)
+TOTAL_FILES=$(find $DATASET_DIR \( -name "*.nii.gz" -o -name "*.nii" \) | wc -l)
 SWAPPED_FILES=$((TOTAL_FILES - FILE_COUNT))
 
 echo -e "${GREEN}✓${NC} Dataset verified"

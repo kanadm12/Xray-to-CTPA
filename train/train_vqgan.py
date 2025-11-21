@@ -78,7 +78,7 @@ def run(cfg: DictConfig):
         'max_steps': cfg.model.max_steps,
         'max_epochs': cfg.model.max_epochs,
         'precision': cfg.model.precision,
-        'gradient_clip_val': cfg.model.gradient_clip_val,
+        # gradient_clip_val not supported with manual optimization
     }
     
     # Only add strategy for multi-GPU training
