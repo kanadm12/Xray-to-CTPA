@@ -32,7 +32,10 @@ echo -e "${YELLOW}[1/7] Cloning repository...${NC}"
 if [ -d "$REPO_DIR" ]; then
     echo -e "${GREEN}✓${NC} Repository already cloned, updating..."
     cd $REPO_DIR
-    git pull
+    # Reset any local changes and pull latest
+    git fetch origin main
+    git reset --hard origin/main
+    git pull origin main
 else
     cd $WORKSPACE
     git clone https://github.com/kanadm12/Xray-2CTPA_spartis.git
