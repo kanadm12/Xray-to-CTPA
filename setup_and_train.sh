@@ -22,8 +22,8 @@ echo -e "${NC}"
 # Configuration
 WORKSPACE="/workspace"
 REPO_DIR="$WORKSPACE/Xray-2CTPA_spartis"
-DATASET_DIR="$WORKSPACE/datasets"
-DATASET_NAME="data_new"
+DATASET_DIR="$REPO_DIR/datasets"
+DATASET_NAME="."
 
 # ============================================
 # Step 1: Clone Repository
@@ -61,23 +61,30 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # Step 3: Verify Dataset Exists
 # ============================================
 echo -e "${YELLOW}[3/7] Verifying dataset...${NC}"
-if [ ! -d "$DATASET_DIR/$DATASET_NAME" ]; then
-    echo -e "${RED}✗${NC} Dataset not found at: $DATASET_DIR/$DATASET_NAME"
+if [ ! -d "$DATASET_DIR" ] || [ -z "$(find $DATASET_DIR -name "*.nii.gz" 2>/dev/null)" ]; then
+    echo -e "${RED}✗${NC} Dataset not found at: $DATASET_DIR"
     echo ""
-    echo -e "${YELLOW}Please upload your dataset using one of these methods:${NC}"
-    echo "1. RunPod Files: Upload 'data_new' folder to /workspace/datasets/"
-    echo "2. Google Drive:"
-    echo "   pip install gdown"
-    echo "   gdown --id YOUR_FILE_ID -O /workspace/dataset.tar.gz"
-    echo "   mkdir -p /workspace/datasets && tar -xzf /workspace/dataset.tar.gz -C /workspace/datasets/"
-    echo "3. Hugging Face:"
-    echo "   huggingface-cli download-cache --repo-type dataset YOUR_USERNAME/YOUR_DATASET --local-dir /workspace/datasets/data_new"
+    echo -e "${YELLOW}The datasets folder should be located at:${NC}"
+    echo "  $DATASET_DIR"
+    echo ""
+    echo -e "${YELLOW}Expected structure:${NC}"
+    echo "  /workspace/Xray-2CTPA_spartis/datasets/"
+    echo "  ├── patient_1/"
+    echo "  │   ├── image.nii.gz"
+    echo "  │   └── image_swapped.nii.gz (will be excluded)"
+    echo "  └── patient_2/"
+    echo "      └── image.nii.gz"
+    echo ""
+    echo -e "${YELLOW}To upload via RunPod Files:${NC}"
+    echo "1. Go to RunPod Files"
+    echo "2. Create 'datasets' folder in /workspace/Xray-2CTPA_spartis/"
+    echo "3. Upload your patient folders there"
     exit 1
 fi
 
 # Count files
-FILE_COUNT=$(find $DATASET_DIR/$DATASET_NAME -name "*.nii.gz" ! -name "*swapped*" | wc -l)
-TOTAL_FILES=$(find $DATASET_DIR/$DATASET_NAME -name "*.nii.gz" | wc -l)
+FILE_COUNT=$(find $DATASET_DIR -name "*.nii.gz" ! -name "*swapped*" | wc -l)
+TOTAL_FILES=$(find $DATASET_DIR -name "*.nii.gz" | wc -l)
 SWAPPED_FILES=$((TOTAL_FILES - FILE_COUNT))
 
 echo -e "${GREEN}✓${NC} Dataset verified"
@@ -90,7 +97,7 @@ echo "  - Total files: $TOTAL_FILES"
 # ============================================
 echo -e "${YELLOW}[4/7] Updating configuration...${NC}"
 CONFIG_FILE="$REPO_DIR/config/dataset/custom_data.yaml"
-sed -i "s|root_dir: .*|root_dir: $DATASET_DIR/$DATASET_NAME/|" $CONFIG_FILE
+sed -i "s|root_dir: .*|root_dir: $DATASET_DIR/|" $CONFIG_FILE
 echo -e "${GREEN}✓${NC} Configuration updated"
 echo "  Config: $CONFIG_FILE"
 
@@ -110,7 +117,7 @@ echo "  - GPU VRAM: ${GPU_MEMORY}MB"
 # ============================================
 echo -e "${YELLOW}[6/7] Training configuration...${NC}"
 echo "  - Repository: $REPO_DIR"
-echo "  - Dataset: $DATASET_DIR/$DATASET_NAME/"
+echo "  - Dataset: $DATASET_DIR/"
 echo "  - Output: $REPO_DIR/lightning_logs/"
 echo ""
 echo -e "${YELLOW}Training will use:${NC}"
