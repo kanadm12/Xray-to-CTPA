@@ -73,7 +73,7 @@ class Codebook(nn.Module):
             encoding_indices_reshaped, self.embeddings)  # [b, t, h, w, c]
         embeddings = shift_dim(embeddings, -1, 1)  # [b, c, t, h, w]
 
-        commitment_loss = 1.0 * F.mse_loss(z, embeddings.detach())
+        commitment_loss = 2.0 * F.mse_loss(z, embeddings.detach())
 
         # EMA codebook update
         if self.training:
@@ -105,9 +105,11 @@ class Codebook(nn.Module):
 
         # Perplexity calculation - only compute during training
         if self.training and encode_onehot is not None:
-            avg_probs = torch.mean(encode_onehot, dim=0)
-            perplexity = torch.exp(-torch.sum(avg_probs *
-                                   torch.log(avg_probs + 1e-10)))
+            avg_probs = torch.mean(encode_onehot.float(), dim=0)
+            # Normalize to ensure it's a valid probability distribution
+            avg_probs = avg_probs / (avg_probs.sum() + 1e-10)
+            # Compute perplexity = exp(entropy)
+            perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
         else:
             perplexity = torch.tensor(0.0, device=z.device)
 
