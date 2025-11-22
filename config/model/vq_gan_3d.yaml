@@ -31,7 +31,7 @@ i3d_feat: False
 restart_thres: 1.0
 no_random_restart: False
 norm_type: group
-padding_type: replicate
+padding_type: constant
 num_groups: 32
 
 
