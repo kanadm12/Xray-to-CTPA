@@ -73,7 +73,7 @@ class Codebook(nn.Module):
             encoding_indices_reshaped, self.embeddings)  # [b, t, h, w, c]
         embeddings = shift_dim(embeddings, -1, 1)  # [b, c, t, h, w]
 
-        commitment_loss = 0.25 * F.mse_loss(z, embeddings.detach())
+        commitment_loss = 1.0 * F.mse_loss(z, embeddings.detach())
 
         # EMA codebook update
         if self.training:

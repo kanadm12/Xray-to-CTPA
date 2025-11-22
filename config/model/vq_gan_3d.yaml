@@ -13,10 +13,10 @@ precision: 32
 gradient_clip_val: 1.0
 
 
-embedding_dim: 128
-n_codes: 4096
+embedding_dim: 64
+n_codes: 512
 n_hiddens: 128
-lr: 3e-5
+lr: 1e-4
 downsample: [4, 4, 4]
 disc_channels: 64
 disc_layers: 3
