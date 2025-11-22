@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
+from torch.utils.checkpoint import checkpoint
 
 from vq_gan_3d.utils import shift_dim, adopt_weight, comp_getattr
 from vq_gan_3d.model.lpips import LPIPS
@@ -110,9 +111,15 @@ class VQGAN(pl.LightningModule):
     def forward(self, x, optimizer_idx=None, log_image=False):
         B, C, T, H, W = x.shape
 
-        z = self.pre_vq_conv(self.encoder(x))
-        vq_output = self.codebook(z)
-        x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
+        # Use gradient checkpointing to save memory during training
+        if self.training:
+            z = checkpoint(lambda x: self.pre_vq_conv(self.encoder(x)), x, use_reentrant=False)
+            vq_output = self.codebook(z)
+            x_recon = checkpoint(lambda emb: self.decoder(self.post_vq_conv(emb)), vq_output['embeddings'], use_reentrant=False)
+        else:
+            z = self.pre_vq_conv(self.encoder(x))
+            vq_output = self.codebook(z)
+            x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
 
         # Check for NaN/Inf in reconstruction
         if torch.isnan(x_recon).any() or torch.isinf(x_recon).any():
