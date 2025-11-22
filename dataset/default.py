@@ -7,7 +7,7 @@ import argparse
 
 PREPROCESSING_TRANSORMS = tio.Compose([
     tio.RescaleIntensity(out_min_max=(-1, 1)),
-    tio.CropOrPad(target_shape=(384, 384, 192))  # Larger input with constant padding (replicate bug fixed)
+    tio.CropOrPad(target_shape=(320, 320, 160))  # Balanced for H200 with constant padding
 ])
 
 TRAIN_TRANSFORMS = tio.Compose([
