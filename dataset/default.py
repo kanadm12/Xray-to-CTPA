@@ -7,7 +7,7 @@ import argparse
 
 PREPROCESSING_TRANSORMS = tio.Compose([
     tio.RescaleIntensity(out_min_max=(-1, 1)),
-    tio.CropOrPad(target_shape=(288, 288, 128))  # With gradient checkpointing and reduced spatial res
+    tio.CropOrPad(target_shape=(256, 256, 64))  # Minimal config with downsample [4,4,4] and gradient checkpointing
 ])
 
 TRAIN_TRANSFORMS = tio.Compose([
