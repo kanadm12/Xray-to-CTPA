@@ -15,7 +15,7 @@ gradient_clip_val: 1.0
 
 embedding_dim: 64
 n_codes: 512
-n_hiddens: 128
+n_hiddens: 64
 lr: 1e-4
 downsample: [4, 4, 4]
 disc_channels: 64
