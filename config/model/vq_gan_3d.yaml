@@ -8,7 +8,7 @@ default_root_dir: ./outputs/vq_gan/
 default_root_dir_postfix: ''
 resume_from_checkpoint:
 max_steps: -1
-max_epochs: -1
+max_epochs: 30
 precision: 32
 gradient_clip_val: 1.0
 
