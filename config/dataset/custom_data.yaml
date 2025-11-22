@@ -1,3 +1,3 @@
 name: CUSTOM_DATA
-root_dir: ../datasets/
+root_dir: /workspace/Xray-2CTPA_spartis/datasets/
 image_channels: 1
