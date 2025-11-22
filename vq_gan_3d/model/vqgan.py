@@ -209,6 +209,8 @@ class VQGAN(pl.LightningModule):
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log('train/perplexity', vq_output['perplexity'],
                      prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log('train/codebook_usage', float(vq_output['codebook_usage']),
+                     prog_bar=False, logger=True, on_step=True, on_epoch=True)
             return recon_loss, x_recon, vq_output, aeloss, perceptual_loss, gan_feat_loss
 
         if optimizer_idx == 1:
@@ -323,8 +325,7 @@ class VQGAN(pl.LightningModule):
         ssim_proxy = correlation.mean()
         
         # Codebook usage (percentage of codes being used)
-        # This is already captured in perplexity, but let's log it explicitly
-        codebook_usage = vq_output['perplexity'] / self.n_codes * 100
+        codebook_usage_pct = (vq_output['codebook_usage'] / self.n_codes) * 100.0
         
         self.log('val/recon_loss', recon_loss, prog_bar=True, sync_dist=True)
         self.log('val/psnr', psnr, prog_bar=True, sync_dist=True)
@@ -334,7 +335,8 @@ class VQGAN(pl.LightningModule):
             perceptual_loss = perceptual_loss.mean()
         self.log('val/perceptual_loss', perceptual_loss, sync_dist=True)
         self.log('val/perplexity', vq_output['perplexity'], sync_dist=True)
-        self.log('val/codebook_usage_%', codebook_usage, sync_dist=True)
+        self.log('val/codebook_usage_%', codebook_usage_pct, sync_dist=True)
+        self.log('val/codebook_usage_count', float(vq_output['codebook_usage']), sync_dist=True)
         self.log('val/commitment_loss',
                  vq_output['commitment_loss'], sync_dist=True)
 

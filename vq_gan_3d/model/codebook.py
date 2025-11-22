@@ -58,13 +58,9 @@ class Codebook(nn.Module):
 
         encoding_indices = torch.argmin(distances, dim=1)
         
-        # Memory-efficient one_hot encoding: process in chunks if needed
-        if self.training:
-            encode_onehot = F.one_hot(encoding_indices, self.n_codes).type_as(
-                flat_inputs)  # [bthw, ncode]
-        else:
-            # During validation/inference, only compute sum without full one_hot tensor
-            encode_onehot = None
+        # Always compute one_hot for metrics (both training and validation)
+        encode_onehot = F.one_hot(encoding_indices, self.n_codes).type_as(
+            flat_inputs)  # [bthw, ncode]
             
         encoding_indices_reshaped = encoding_indices.view(
             z.shape[0], *z.shape[2:])  # [b, t, h, w]
@@ -86,9 +82,12 @@ class Codebook(nn.Module):
             self.N.data.mul_(0.99).add_(n_total, alpha=0.01)
             self.z_avg.data.mul_(0.99).add_(encode_sum.t(), alpha=0.01)
 
+            # Prevent division by zero/NaN with proper weight calculation
+            # Use max(N, 1.0) to ensure minimum weight for unused codes
             n = self.N.sum()
-            weights = (self.N + 1e-7) / (n + self.n_codes * 1e-7) * n
-            encode_normalized = self.z_avg / weights.unsqueeze(1)
+            cluster_size = torch.clamp(self.N, min=1.0)
+            weights = cluster_size / cluster_size.sum()
+            encode_normalized = self.z_avg / cluster_size.unsqueeze(1)
             self.embeddings.data.copy_(encode_normalized)
 
             y = self._tile(flat_inputs)
@@ -103,18 +102,20 @@ class Codebook(nn.Module):
 
         embeddings_st = (embeddings - z).detach() + z
 
-        # Perplexity calculation - only compute during training
-        if self.training and encode_onehot is not None:
-            avg_probs = torch.mean(encode_onehot.float(), dim=0)
-            # Normalize to ensure it's a valid probability distribution
-            avg_probs = avg_probs / (avg_probs.sum() + 1e-10)
-            # Compute perplexity = exp(entropy)
-            perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
-        else:
-            perplexity = torch.tensor(0.0, device=z.device)
+        # Perplexity calculation - compute for both training and validation
+        avg_probs = torch.mean(encode_onehot.float(), dim=0)
+        # Normalize to ensure it's a valid probability distribution
+        avg_probs = avg_probs / (avg_probs.sum() + 1e-10)
+        # Compute perplexity = exp(entropy)
+        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
+        
+        # Actual codebook usage - count unique codes used in this batch
+        unique_codes = torch.unique(encoding_indices)
+        codebook_usage = len(unique_codes)
 
         return dict(embeddings=embeddings_st, encodings=encoding_indices,
-                    commitment_loss=commitment_loss, perplexity=perplexity)
+                    commitment_loss=commitment_loss, perplexity=perplexity,
+                    codebook_usage=codebook_usage)
 
     def dictionary_lookup(self, encodings):
         embeddings = F.embedding(encodings, self.embeddings)
