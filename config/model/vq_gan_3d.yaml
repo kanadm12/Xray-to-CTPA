@@ -17,7 +17,7 @@ embedding_dim: 128
 n_codes: 4096
 n_hiddens: 128
 lr: 3e-5
-downsample: [8, 8, 8]
+downsample: [4, 4, 4]
 disc_channels: 64
 disc_layers: 3
 discriminator_iter_start: 100000
