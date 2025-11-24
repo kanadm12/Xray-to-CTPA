@@ -1,19 +1,19 @@
-# Patch-Wise Parallel Training Guide
+# Patch-Wise Training Guide (Single GPU)
 
 ## Quick Start
 
-### 1. Environment Setup (RunPod with 4× H200)
+### 1. Environment Setup
 
 ```bash
 # Navigate to patch-wise implementation
-cd /workspace/Xray-2CTPA_spartis/patchwise_parallel_512x512x604_multi_gpu
+cd /workspace/Xray-2CTPA_spartis/patchwise_512x512x604_single_gpu
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Verify GPU cluster
+# Verify GPU
 nvidia-smi
-# Should show 4× H200 GPUs
+# Should show your GPU (24GB+ recommended)
 ```
 
 ### 2. Prepare Data
@@ -34,9 +34,9 @@ Your full-resolution CTPA volumes should be in:
 chmod +x launch_distributed_training.sh
 ./launch_distributed_training.sh
 
-# Option 2: Direct torchrun command
-export PYTHONPATH=/workspace/Xray-2CTPA_spartis/patchwise_parallel_512x512x604_multi_gpu:$PYTHONPATH
-torchrun --nproc_per_node=4 train/train_vqgan_distributed.py
+# Option 2: Direct Python command
+export PYTHONPATH=/workspace/Xray-2CTPA_spartis/patchwise_512x512x604_single_gpu:$PYTHONPATH
+python train/train_vqgan_distributed.py
 ```
 
 ### 4. Monitor Training
@@ -65,28 +65,28 @@ watch -n 1 nvidia-smi
 1. ✅ Patches fit comfortably in GPU memory (32 MB each)
 2. ✅ 25% overlap ensures smooth reconstruction
 3. ✅ Compatible with baseline model architecture (256×256×128 vs 256×256×64)
-4. ✅ Efficient parallelization across 4 GPUs
+4. ✅ Can train on full resolution with a single GPU
 
-### Distributed Training Strategy
+### Single GPU Training Strategy
 
-**Data Distribution**:
+**Data Processing**:
 - Each volume → 24 patches
-- DistributedSampler distributes patches across 4 GPUs
-- Each GPU processes ~6 patches per volume simultaneously
+- DataLoader provides patches sequentially
+- Batch size of 4 patches processed simultaneously
 
-**Gradient Synchronization**:
-- DDP (DistributedDataParallel) automatically synchronizes gradients
-- Effective batch size = 2 patches/GPU × 4 GPUs = 8 patches globally
-- Equivalent to batch_size=8 on single GPU but 4× faster
+**Memory Efficiency**:
+- Patches processed one batch at a time
+- No need for distributed communication overhead
+- Simpler code, easier to debug
 
-**Memory Usage per GPU**:
+**Memory Usage**:
 ```
 Model parameters:     ~500 MB
-Batch (2 patches):     ~64 MB
+Batch (4 patches):    ~128 MB
 Activations:          ~20 GB
 Gradients:            ~20 GB
 -------------------------
-Total:                ~41 GB / 144 GB (28% utilization)
+Total:                ~41 GB (fits in 48GB or 80GB GPU)
 ```
 
 ### Reconstruction Pipeline
@@ -102,14 +102,14 @@ Total:                ~41 GB / 144 GB (28% utilization)
 ## Performance Expectations
 
 ### Training Speed
-- **Baseline (1 GPU)**: ~4 seconds/volume
-- **Distributed (4 GPUs)**: ~1.2 seconds/volume
-- **Speedup**: ~3.3× (not perfect 4× due to communication overhead)
+- **Baseline (256×256×64)**: ~4 seconds/volume
+- **Patch-wise (512×512×604)**: ~16 seconds/volume (4× more data)
+- **Trade-off**: Slower but 97.4% more training data
 
 ### Convergence
 - **Epochs**: 30 (similar to baseline)
-- **Time per Epoch**: ~30 minutes (1349 volumes)
-- **Total Training Time**: ~15 hours
+- **Time per Epoch**: ~6 hours (1349 volumes)
+- **Total Training Time**: ~180 hours (~7.5 days)
 
 ### Quality Metrics
 Expected improvements over 256×256×64 baseline:
@@ -129,21 +129,22 @@ Expected improvements over 256×256×64 baseline:
 2. **No Information Loss**: Preserves fine anatomical details
 3. **Higher Quality**: Better PSNR/SSIM due to full resolution
 4. **Production Ready**: Handles real CTPA dimensions
-5. **Scalable**: Can extend to even larger volumes
+5. **Single GPU**: No need for multi-GPU cluster
 
 ### Trade-offs
 
 **Pros**:
 - ✅ Full resolution training
-- ✅ 3.3× faster training (4 GPUs)
+- ✅ Only requires 1 GPU (24GB+ recommended)
 - ✅ Better reconstruction quality
 - ✅ No downsampling artifacts
+- ✅ Simpler code than multi-GPU
 
 **Cons**:
-- ❌ Requires 4 GPUs (vs 1 GPU for baseline)
-- ❌ Slightly more complex codebase
-- ❌ Communication overhead (~15% of training time)
+- ❌ Slower than multi-GPU (but still feasible)
+- ❌ ~7.5 days training time vs ~8 hours for baseline
 - ❌ Need to handle patch boundaries carefully
+- ❌ Requires larger GPU memory (48GB+ ideal)
 
 ## Troubleshooting
 
@@ -155,9 +156,9 @@ If you still get OOM:
 
 ### Slow Training
 Check:
-1. `num_workers` set appropriately (8-12 per GPU)
+1. `num_workers` set appropriately (8-12)
 2. Data on fast SSD storage
-3. NCCL working correctly: `export NCCL_DEBUG=INFO`
+3. Batch size can be increased if you have more VRAM
 
 ### Poor Reconstruction Quality
 Tune overlap blending:
@@ -165,10 +166,10 @@ Tune overlap blending:
 2. Try `blend_mode='gaussian'` instead of `'linear'`
 3. Ensure patches align correctly during reconstruction
 
-### Uneven GPU Utilization
-- Check DistributedSampler is working
-- Verify batch sizes are balanced
-- Monitor with `nvidia-smi dmon -i 0,1,2,3`
+### Low GPU Utilization
+- Increase batch_size if you have more VRAM
+- Increase num_workers for faster data loading
+- Monitor with `nvidia-smi dmon`
 
 ## Next Steps After Training
 
@@ -181,7 +182,7 @@ Tune overlap blending:
 ## Directory Structure
 
 ```
-patchwise_parallel_512x512x604_multi_gpu/
+patchwise_512x512x604_single_gpu/
 ├── README.md                          # Overview
 ├── TRAINING_GUIDE.md                  # This file
 ├── requirements.txt                   # Dependencies

@@ -1,56 +1,65 @@
-# Patch-Wise Parallel VQ-GAN Training for Full Resolution CTPA (512×512×604)
+# Patch-Wise VQ-GAN Training for Full Resolution CTPA (512×512×604)
 
 ## Overview
 
-This implementation enables training on full-resolution 512×512×604 CTPA volumes using patch-wise parallelism across 4 H200 GPUs. Instead of downsampling, we divide each volume into overlapping 3D patches, process them in parallel, and reconstruct the full volume.
+This implementation enables training on full-resolution 512×512×604 CTPA volumes using patch-wise processing on a **single GPU**. Instead of downsampling, we divide each volume into overlapping 3D patches, process them sequentially, and reconstruct the full volume.
 
 ## Architecture
 
 ### Key Innovations:
 1. **Patch Extraction**: Divide 512×512×604 into overlapping 256×256×128 patches
-2. **Multi-GPU Parallelism**: Distribute patches across 4 H200 GPUs
+2. **Single GPU Training**: Process patches sequentially on one GPU
 3. **Overlap Blending**: Smooth reconstruction using weighted averaging in overlap regions
-4. **Distributed Training**: DDP (Distributed Data Parallel) across GPU cluster
+4. **Memory Efficient**: Each patch is only ~32 MB, allowing larger batch sizes
 
 ### Patch Configuration:
-- **Patch Size**: 256×256×128 (fits in single GPU memory)
+- **Patch Size**: 256×256×128 (fits comfortably in GPU memory)
 - **Overlap**: 64 voxels per dimension (25% overlap)
 - **Stride**: 192 voxels (256 - 64)
 - **Patches per Volume**: ~24 patches (3×3×3 grid with overlaps)
 
 ## Requirements
 
-- 4× NVIDIA H200 GPUs (144GB each)
-- PyTorch with DDP support
-- NCCL for multi-GPU communication
+- 1× NVIDIA GPU (24GB+ VRAM recommended)
+- PyTorch 2.x
+- PyTorch Lightning
 
 ## Training Pipeline
 
 1. **Patch Extraction**: Each 512×512×604 volume → 24 overlapping patches
-2. **Distributed Loading**: DataLoader distributes patches across 4 GPUs
-3. **Parallel Training**: Each GPU processes different patches simultaneously
-4. **Gradient Synchronization**: DDP averages gradients across GPUs
+2. **Sequential Processing**: DataLoader provides patches one batch at a time
+3. **Training**: GPU processes batch_size=4 patches simultaneously
+4. **Gradient Accumulation**: Standard PyTorch backward pass
 5. **Reconstruction**: Overlap blending for validation/inference
 
 ## Usage
 
-```bash
-# Set up environment
-export MASTER_ADDR=localhost
-export MASTER_PORT=29500
-export WORLD_SIZE=4
+### Quick Start
 
-# Launch distributed training on 4 GPUs
-torchrun --nproc_per_node=4 train/train_vqgan_distributed.py \
+```bash
+# Navigate to directory
+cd patchwise_512x512x604_single_gpu
+
+# Launch training
+python train/train_vqgan_distributed.py \
     dataset=full_resolution_ctpa \
-    model=vq_gan_3d_patches \
-    gpus=4
+    model=vq_gan_3d_patches
+```
+
+### Or use the launch script:
+
+```bash
+# Linux/Mac
+./launch_distributed_training.sh
+
+# Windows PowerShell
+.\launch_distributed_training.ps1
 ```
 
 ## Directory Structure
 
 ```
-patchwise_parallel_512x512x604_multi_gpu/
+patchwise_512x512x604_single_gpu/
 ├── config/
 │   ├── dataset/
 │   │   └── full_resolution_ctpa.yaml

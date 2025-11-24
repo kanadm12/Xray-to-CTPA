@@ -1,37 +1,29 @@
 #!/bin/bash
 
-# Launch distributed training on 4 H200 GPUs
-# Run this script on the RunPod instance
+# Launch patch-wise training on single GPU
+# Trains on full 512×512×604 resolution using patch extraction
 
 echo "=================================================="
-echo "PATCH-WISE PARALLEL VQ-GAN TRAINING"
+echo "PATCH-WISE VQ-GAN TRAINING (Single GPU)"
 echo "Full Resolution: 512×512×604"
-echo "GPUs: 4× H200 (144GB each)"
+echo "Patch Size: 256×256×128"
 echo "=================================================="
 
 # Set up environment
 export PYTHONPATH=/workspace/Xray-2CTPA_spartis/patchwise_parallel_512x512x604_multi_gpu:$PYTHONPATH
-export MASTER_ADDR=localhost
-export MASTER_PORT=29500
-export WORLD_SIZE=4
-export NCCL_DEBUG=INFO
 
-# Verify GPUs
+# Verify GPU
 echo ""
-echo "Available GPUs:"
+echo "Available GPU:"
 nvidia-smi --list-gpus
 
 # Navigate to training directory
 cd /workspace/Xray-2CTPA_spartis/patchwise_parallel_512x512x604_multi_gpu
 
-# Launch distributed training using torchrun
+# Launch training
 echo ""
-echo "Launching distributed training..."
-torchrun \
-    --nproc_per_node=4 \
-    --master_addr=localhost \
-    --master_port=29500 \
-    train/train_vqgan_distributed.py \
+echo "Launching training..."
+python train/train_vqgan_distributed.py \
     dataset=full_resolution_ctpa \
     model=vq_gan_3d_patches
 

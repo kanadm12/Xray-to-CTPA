@@ -2,11 +2,11 @@
 # Optimized for 4× H200 GPUs with 144GB each
 
 seed: 1234
-batch_size: 2  # Per GPU (total effective batch = 2 × 4 = 8 patches)
-num_workers: 8  # Per GPU
+batch_size: 4  # Single GPU - increased from 2 to compensate for no multi-GPU
+num_workers: 8
 
-# Multi-GPU settings
-gpus: 4
+# Single GPU settings
+gpus: 1
 accumulate_grad_batches: 1
 
 # Training
