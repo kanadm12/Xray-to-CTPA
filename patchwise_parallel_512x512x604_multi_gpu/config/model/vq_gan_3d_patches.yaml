@@ -1,0 +1,57 @@
+# VQ-GAN Configuration for Patch-Wise Distributed Training
+# Optimized for 4× H200 GPUs with 144GB each
+
+seed: 1234
+batch_size: 2  # Per GPU (total effective batch = 2 × 4 = 8 patches)
+num_workers: 8  # Per GPU
+
+# Multi-GPU settings
+gpus: 4
+accumulate_grad_batches: 1
+
+# Training
+default_root_dir: ./outputs/vqgan_patches_distributed/
+max_epochs: 30
+precision: 32
+gradient_clip_val: 1.0
+
+# Model architecture (same as baseline for compatibility)
+embedding_dim: 64
+n_codes: 512
+n_hiddens: 64
+lr: 1e-4
+
+# Downsampling (same as baseline - applied to patches)
+downsample: [4, 4, 4]
+
+# Discriminator (disabled initially)
+disc_channels: 64
+disc_layers: 3
+discriminator_iter_start: 100000  # Very high to disable
+disc_loss_type: hinge
+
+# Loss weights
+image_gan_weight: 0.0
+video_gan_weight: 0.0
+l1_weight: 1.0
+gan_feat_weight: 0.0
+perceptual_weight: 0.0
+
+# Codebook
+restart_thres: 1.0
+no_random_restart: false
+
+# Architecture details
+norm_type: group
+padding_type: constant
+num_groups: 32
+
+# Distributed training specific
+find_unused_parameters: false
+sync_batchnorm: true
+
+# Expected memory usage per GPU:
+# - Model: ~500 MB
+# - Batch (2 patches × 256×256×128): ~64 MB
+# - Activations + Gradients: ~40 GB
+# - Total: ~41 GB / 144 GB = 28% utilization

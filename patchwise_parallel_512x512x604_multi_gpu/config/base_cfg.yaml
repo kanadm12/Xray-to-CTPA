@@ -1,0 +1,8 @@
+defaults:
+  - dataset: full_resolution_ctpa
+  - model: vq_gan_3d_patches
+
+# Base configuration for distributed patch-wise training
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

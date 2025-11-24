@@ -1,0 +1,23 @@
+# Full Resolution CTPA Dataset Configuration
+# Supports 512×512×604 volumes with patch extraction
+
+root_dir: /workspace/Xray-2CTPA_spartis/datasets/
+image_channels: 1
+
+# Patch extraction parameters
+patch_size: [256, 256, 128]  # Patch dimensions (D, H, W)
+stride: [192, 192, 96]        # Stride for overlap (25% overlap = 64 voxels)
+
+# Data split
+train_split: 0.8
+
+# Preprocessing
+normalize: true
+augmentation: false  # Can add augmentation later
+
+# Statistics
+# Full volume: 512×512×604
+# Patch size: 256×256×128
+# Stride: 192×192×96
+# Patches per volume: ~24 (3×3×3 grid)
+# Overlap: 25% per dimension (64 voxels)
