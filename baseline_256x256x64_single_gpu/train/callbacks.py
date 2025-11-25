@@ -7,6 +7,9 @@ from PIL import Image
 import torch
 import torchvision
 from pytorch_lightning.callbacks import Callback
+import sys
+import os
+
 try:
     from pytorch_lightning.utilities.rank_zero import rank_zero_only
 except ImportError:
@@ -16,6 +19,12 @@ except ImportError:
         # Fallback: define a no-op decorator if imports fail
         def rank_zero_only(func):
             return func
+
+# Add parent paths for relative imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+baseline_dir = os.path.dirname(os.path.dirname(current_dir))
+if baseline_dir not in sys.path:
+    sys.path.insert(0, baseline_dir)
 
 from vq_gan_3d.utils import save_video_grid
 

@@ -27,6 +27,13 @@ from transformers import CLIPVisionModel, CLIPTextModel, CLIPTokenizer
 from open_clip import create_model_from_pretrained
 
 from torch.utils.data import Dataset, DataLoader
+
+# Add parent paths for relative imports
+current_file = os.path.abspath(__file__)
+baseline_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+if baseline_dir not in sys.path:
+    sys.path.insert(0, baseline_dir)
+
 from vq_gan_3d.model.vqgan import VQGAN
 from diffusers import AutoencoderKL
 

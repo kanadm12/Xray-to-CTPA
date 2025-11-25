@@ -5,6 +5,8 @@ import math
 import argparse
 import numpy as np
 import pickle as pkl
+import sys
+import os
 
 import pytorch_lightning as pl
 import torch
@@ -13,9 +15,14 @@ import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.checkpoint import checkpoint
 
-from vq_gan_3d.utils import shift_dim, adopt_weight, comp_getattr
-from vq_gan_3d.model.lpips import LPIPS
-from vq_gan_3d.model.codebook import Codebook
+# Add parent paths for relative imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+vqgan_3d_dir = os.path.dirname(current_dir)
+sys.path.insert(0, vqgan_3d_dir)
+
+from utils import shift_dim, adopt_weight, comp_getattr
+from .lpips import LPIPS
+from .codebook import Codebook
 
 
 def silu(x):

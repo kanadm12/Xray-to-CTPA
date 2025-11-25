@@ -1,9 +1,18 @@
 "Adapted from https://github.com/SongweiGe/TATS"
 
 import os
+import sys
+from pathlib import Path
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
+
+# Add parent paths for relative imports
+current_file = os.path.abspath(__file__)
+baseline_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+if baseline_dir not in sys.path:
+    sys.path.insert(0, baseline_dir)
+
 from ddpm.diffusion import default
 from vq_gan_3d.model import VQGAN
 from train.callbacks import ImageLogger, VideoLogger

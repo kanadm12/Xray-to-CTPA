@@ -2,13 +2,21 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import numpy as np
+import os
+import sys
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 
-from vq_gan_3d.utils import shift_dim
+# Add parent paths for relative imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+vqgan_3d_dir = os.path.dirname(current_dir)
+if vqgan_3d_dir not in sys.path:
+    sys.path.insert(0, vqgan_3d_dir)
+
+from utils import shift_dim
 
 
 class Codebook(nn.Module):
