@@ -29,14 +29,24 @@ def get_dataloaders(cfg):
     """Create dataloaders for single-GPU training."""
     # Get file paths - search recursively for .nii.gz files in patient folders
     data_dir = cfg.dataset.root_dir
+    
+    print(f"Searching for data in: {data_dir}")
+    print(f"Directory exists: {os.path.exists(data_dir)}")
+    
+    if os.path.exists(data_dir):
+        print(f"Contents: {os.listdir(data_dir)[:10]}")  # First 10 items
+    
     all_files = []
     
     for root, dirs, files in os.walk(data_dir):
         for f in files:
-            if f.endswith('.nii.gz'):
+            if f.endswith('.nii.gz') or f.endswith('.nii'):
                 all_files.append(os.path.join(root, f))
     
     all_files = sorted(all_files)
+    
+    if len(all_files) == 0:
+        raise ValueError(f"No NIfTI files found in {data_dir}. Please check the dataset path.")
     
     # Split train/val
     split_idx = int(len(all_files) * cfg.dataset.train_split)
