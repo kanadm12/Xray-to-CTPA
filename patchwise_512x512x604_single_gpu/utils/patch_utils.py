@@ -58,6 +58,14 @@ def extract_patches_3d(
     h_positions = list(range(0, H - ph + 1, sh))
     w_positions = list(range(0, W - pw + 1, sw))
     
+    # Handle edge cases where volume is smaller than patch
+    if not d_positions:
+        d_positions = [0]
+    if not h_positions:
+        h_positions = [0]
+    if not w_positions:
+        w_positions = [0]
+    
     # Ensure we capture the last patches if needed
     if d_positions[-1] + pd < D:
         d_positions.append(D - pd)
