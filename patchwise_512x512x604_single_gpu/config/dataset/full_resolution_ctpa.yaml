@@ -5,9 +5,9 @@ name: FULL_RESOLUTION_CTPA
 root_dir: /workspace/Xray-to-CTPA/datasets/
 image_channels: 1
 
-# Patch extraction parameters
-patch_size: [256, 256, 128]  # Patch dimensions (D, H, W)
-stride: [192, 192, 96]        # Stride for overlap (25% overlap = 64 voxels)
+# Patch extraction parameters  
+patch_size: [128, 128, 64]   # Reduced patch size to fit memory (H, W, D)
+stride: [128, 128, 64]        # No overlap - just tile the volume
 
 # Data split
 train_split: 0.8
