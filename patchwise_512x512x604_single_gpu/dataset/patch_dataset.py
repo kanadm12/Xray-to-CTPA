@@ -219,10 +219,12 @@ class PatchDataset(Dataset):
         return len(self.volume_paths)
     
     def __getitem__(self, idx):
-        # Load volume
+        # Load volume (print progress for first few)
         if self.volumes is not None:
             volume = self.volumes[idx]
         else:
+            if idx < 3:  # Print for first 3 volumes to show progress
+                print(f"Loading volume {idx+1}/{len(self.volume_paths)}: {os.path.basename(self.volume_paths[idx])}")
             volume = self._load_volume(self.volume_paths[idx])
         
         # Extract all patches from this volume
@@ -231,6 +233,9 @@ class PatchDataset(Dataset):
             patch_size=self.patch_size,
             stride=self.stride
         )
+        
+        if idx < 3:  # Print patch count for first few volumes
+            print(f"  Extracted {len(patches)} patches of size {self.patch_size}")
         
         return {
             'patches': patches,  # [N, C, D, H, W] where D=depth, H=height, W=width
