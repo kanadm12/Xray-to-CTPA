@@ -181,6 +181,27 @@ class PatchDataset(Dataset):
         volume = nii.get_fdata()
         volume = torch.from_numpy(volume).float().unsqueeze(0)
         
+        # Pad to standard size (512x512x604) to ensure all volumes same size
+        target_shape = (512, 512, 604)
+        current_shape = volume.shape[1:]  # Remove channel dimension
+        
+        # Calculate padding needed
+        pad_d = max(0, target_shape[2] - current_shape[2])
+        pad_h = max(0, target_shape[0] - current_shape[0])
+        pad_w = max(0, target_shape[1] - current_shape[1])
+        
+        if pad_d > 0 or pad_h > 0 or pad_w > 0:
+            # Pad symmetrically (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back)
+            volume = torch.nn.functional.pad(
+                volume,
+                (0, pad_w, 0, pad_h, 0, pad_d),
+                mode='constant',
+                value=volume.min()  # Use min value for padding
+            )
+        
+        # Crop if larger than target
+        volume = volume[:, :target_shape[0], :target_shape[1], :target_shape[2]]
+        
         if self.normalize:
             volume_min = volume.min()
             volume_max = volume.max()
