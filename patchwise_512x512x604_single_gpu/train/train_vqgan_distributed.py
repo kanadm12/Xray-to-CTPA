@@ -121,7 +121,6 @@ def main(cfg: DictConfig):
         devices=1,  # Single GPU
         max_epochs=cfg.model.max_epochs,
         precision=cfg.model.precision,
-        gradient_clip_val=cfg.model.gradient_clip_val,
         accumulate_grad_batches=cfg.model.accumulate_grad_batches,
         callbacks=callbacks,
         log_every_n_steps=50,
