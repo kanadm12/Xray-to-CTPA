@@ -45,6 +45,7 @@ class VQGAN_Patches(pl.LightningModule):
         self.embedding_dim = cfg.model.embedding_dim
         self.n_codes = cfg.model.n_codes
         self.automatic_optimization = False
+        self.patch_micro_batch_size = 2  # Process 2 patches at a time to save memory
         
         # Encoder/Decoder (same as baseline)
         self.encoder = Encoder(
@@ -144,7 +145,7 @@ class VQGAN_Patches(pl.LightningModule):
         return x_recon, vq_output
     
     def training_step(self, batch, batch_idx):
-        """Training step for patch-based training."""
+        """Training step for patch-based training with micro-batching."""
         # Extract patches from batch
         patches = batch['patches']  # [B*N, C, D, H, W]
         
@@ -155,75 +156,129 @@ class VQGAN_Patches(pl.LightningModule):
         
         # Get optimizers
         opt_ae, opt_disc = self.optimizers()
-        
-        # Forward pass
-        x_recon, vq_output = self.forward(patches)
-        
-        # Compute losses
-        recon_loss = F.l1_loss(x_recon, patches) * self.l1_weight
-        commitment_loss = vq_output['commitment_loss']
-        
-        # Total autoencoder loss
-        ae_loss = recon_loss + commitment_loss
-        
-        # Skip NaN batches
-        if torch.isnan(ae_loss):
-            print(f"Warning: NaN detected in batch {batch_idx}, skipping...")
-            return None
-        
-        # Backward and optimize
         opt_ae.zero_grad()
-        self.manual_backward(ae_loss)
+        
+        # Process patches in micro-batches to save memory
+        num_patches = patches.shape[0]
+        all_recons = []
+        all_commitments = []
+        all_perplexities = []
+        all_usages = []
+        
+        for i in range(0, num_patches, self.patch_micro_batch_size):
+            end_idx = min(i + self.patch_micro_batch_size, num_patches)
+            patch_batch = patches[i:end_idx]
+            
+            # Forward pass on micro-batch
+            x_recon, vq_output = self.forward(patch_batch)
+            
+            # Compute losses for this micro-batch
+            recon_loss = F.l1_loss(x_recon, patch_batch) * self.l1_weight
+            commitment_loss = vq_output['commitment_loss']
+            ae_loss = recon_loss + commitment_loss
+            
+            # Scale loss by micro-batch proportion
+            micro_batch_size = end_idx - i
+            loss_scale = micro_batch_size / num_patches
+            ae_loss = ae_loss * loss_scale
+            
+            # Skip NaN micro-batches
+            if torch.isnan(ae_loss):
+                print(f"Warning: NaN detected in micro-batch {i//self.patch_micro_batch_size}, skipping...")
+                continue
+            
+            # Backward pass
+            self.manual_backward(ae_loss)
+            
+            # Store for metrics
+            all_recons.append(x_recon.detach())
+            all_commitments.append(commitment_loss.detach())
+            all_perplexities.append(vq_output['perplexity'].detach())
+            all_usages.append(vq_output['codebook_usage'])
+        
+        # Optimize after processing all micro-batches
         torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
         opt_ae.step()
         
-        # Compute metrics
-        with torch.no_grad():
-            mse = F.mse_loss(x_recon, patches)
-            psnr = 10 * torch.log10(4.0 / (mse + 1e-8))
-        
-        # Log metrics
-        self.log('train/recon_loss', recon_loss, prog_bar=True, 
-                 logger=True, on_step=True, on_epoch=True, sync_dist=True)
-        self.log('train/commitment_loss', commitment_loss, prog_bar=True,
-                 logger=True, on_step=True, on_epoch=True, sync_dist=True)
-        self.log('train/perplexity', vq_output['perplexity'], prog_bar=True,
-                 logger=True, on_step=True, on_epoch=True, sync_dist=True)
-        self.log('train/codebook_usage', float(vq_output['codebook_usage']),
-                 prog_bar=False, logger=True, on_step=True, on_epoch=True, sync_dist=True)
-        self.log('train/psnr', psnr, prog_bar=True, logger=True, 
-                 on_step=True, on_epoch=True, sync_dist=True)
-        
-        return ae_loss
+        # Compute aggregated metrics
+        if len(all_recons) > 0:
+            all_recons = torch.cat(all_recons, dim=0)
+            with torch.no_grad():
+                recon_loss_avg = F.l1_loss(all_recons, patches) * self.l1_weight
+                commitment_loss_avg = torch.stack(all_commitments).mean()
+                perplexity_avg = torch.stack(all_perplexities).mean()
+                codebook_usage_avg = sum(all_usages) / len(all_usages)
+                mse = F.mse_loss(all_recons, patches)
+                psnr = 10 * torch.log10(4.0 / (mse + 1e-8))
+            
+            # Log metrics
+            self.log('train/recon_loss', recon_loss_avg, prog_bar=True, 
+                     logger=True, on_step=True, on_epoch=True, sync_dist=True)
+            self.log('train/commitment_loss', commitment_loss_avg, prog_bar=True,
+                     logger=True, on_step=True, on_epoch=True, sync_dist=True)
+            self.log('train/perplexity', perplexity_avg, prog_bar=True,
+                     logger=True, on_step=True, on_epoch=True, sync_dist=True)
+            self.log('train/codebook_usage', float(codebook_usage_avg),
+                     prog_bar=False, logger=True, on_step=True, on_epoch=True, sync_dist=True)
+            self.log('train/psnr', psnr, prog_bar=True, logger=True, 
+                     on_step=True, on_epoch=True, sync_dist=True)
+            
+            return recon_loss_avg + commitment_loss_avg
+        else:
+            return None
     
     def validation_step(self, batch, batch_idx):
-        """Validation step."""
+        """Validation step with micro-batching."""
         patches = batch['patches']
         
-        # Forward pass
-        x_recon, vq_output = self.forward(patches)
+        # Process patches in micro-batches to save memory
+        num_patches = patches.shape[0]
+        all_recons = []
+        all_perplexities = []
+        all_usages = []
+        all_commitments = []
         
-        # Compute metrics
-        recon_loss = F.l1_loss(x_recon, patches)
-        mse = F.mse_loss(x_recon, patches)
+        for i in range(0, num_patches, self.patch_micro_batch_size):
+            end_idx = min(i + self.patch_micro_batch_size, num_patches)
+            patch_batch = patches[i:end_idx]
+            
+            # Forward pass on micro-batch
+            with torch.no_grad():
+                x_recon, vq_output = self.forward(patch_batch)
+            
+            # Store results
+            all_recons.append(x_recon)
+            all_perplexities.append(vq_output['perplexity'])
+            all_usages.append(vq_output['codebook_usage'])
+            all_commitments.append(vq_output['commitment_loss'])
+        
+        # Concatenate all reconstructions
+        all_recons = torch.cat(all_recons, dim=0)
+        
+        # Compute metrics on all patches
+        recon_loss = F.l1_loss(all_recons, patches)
+        mse = F.mse_loss(all_recons, patches)
         psnr = 10 * torch.log10(4.0 / (mse + 1e-8))
         
         # SSIM approximation
         x_flat = patches.reshape(patches.size(0), -1)
-        x_recon_flat = x_recon.reshape(x_recon.size(0), -1)
+        x_recon_flat = all_recons.reshape(all_recons.size(0), -1)
         correlation = F.cosine_similarity(x_flat, x_recon_flat, dim=1).mean()
         
-        # Codebook usage
-        codebook_usage_pct = (vq_output['codebook_usage'] / self.n_codes) * 100.0
+        # Average metrics across micro-batches
+        avg_perplexity = torch.stack(all_perplexities).mean()
+        avg_usage = sum(all_usages) / len(all_usages)
+        avg_commitment = torch.stack(all_commitments).mean()
+        codebook_usage_pct = (avg_usage / self.n_codes) * 100.0
         
         # Log metrics
         self.log('val/recon_loss', recon_loss, prog_bar=True, sync_dist=True)
         self.log('val/psnr', psnr, prog_bar=True, sync_dist=True)
         self.log('val/ssim', correlation, prog_bar=True, sync_dist=True)
-        self.log('val/perplexity', vq_output['perplexity'], sync_dist=True)
+        self.log('val/perplexity', avg_perplexity, sync_dist=True)
         self.log('val/codebook_usage_%', codebook_usage_pct, sync_dist=True)
-        self.log('val/codebook_usage_count', float(vq_output['codebook_usage']), sync_dist=True)
-        self.log('val/commitment_loss', vq_output['commitment_loss'], sync_dist=True)
+        self.log('val/codebook_usage_count', float(avg_usage), sync_dist=True)
+        self.log('val/commitment_loss', avg_commitment, sync_dist=True)
     
     def configure_optimizers(self):
         """Configure optimizers."""
