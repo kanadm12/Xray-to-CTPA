@@ -1,6 +1,7 @@
 # Full Resolution CTPA Dataset Configuration
 # Supports 512×512×604 volumes with patch extraction
 
+name: FULL_RESOLUTION_CTPA
 root_dir: /workspace/Xray-2CTPA_spartis/datasets/
 image_channels: 1
 

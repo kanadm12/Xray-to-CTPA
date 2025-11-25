@@ -1,8 +1,9 @@
 # VQ-GAN Configuration for Patch-Wise Distributed Training
-# Optimized for 4× H200 GPUs with 144GB each
+# Optimized for single H200 GPU with 144GB memory
 
+name: VQGAN_PATCHES
 seed: 1234
-batch_size: 4  # Single GPU - increased from 2 to compensate for no multi-GPU
+batch_size: 4  # Single GPU - appropriate for H200
 num_workers: 8
 
 # Single GPU settings
@@ -12,14 +13,9 @@ accumulate_grad_batches: 1
 # Training
 default_root_dir: ./outputs/vqgan_patches_distributed/
 max_epochs: 30
+learning_rate: 1e-4
 precision: 32
 gradient_clip_val: 1.0
-
-# Model architecture (same as baseline for compatibility)
-embedding_dim: 64
-n_codes: 512
-n_hiddens: 64
-lr: 1e-4
 
 # Downsampling (same as baseline - applied to patches)
 downsample: [4, 4, 4]
