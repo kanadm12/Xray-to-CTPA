@@ -2,7 +2,7 @@
 # Supports 512×512×604 volumes with patch extraction
 
 name: FULL_RESOLUTION_CTPA
-root_dir: /workspace/Xray-2CTPA_spartis/datasets/
+root_dir: /workspace/Xray-to-CTPA/datasets/
 image_channels: 1
 
 # Patch extraction parameters

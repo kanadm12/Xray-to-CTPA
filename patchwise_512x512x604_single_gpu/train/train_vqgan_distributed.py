@@ -27,13 +27,16 @@ from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
 
 def get_dataloaders(cfg):
     """Create dataloaders for single-GPU training."""
-    # Get file paths
+    # Get file paths - search recursively for .nii.gz files in patient folders
     data_dir = cfg.dataset.root_dir
-    all_files = sorted([
-        os.path.join(data_dir, f) 
-        for f in os.listdir(data_dir) 
-        if f.endswith('.nii.gz')
-    ])
+    all_files = []
+    
+    for root, dirs, files in os.walk(data_dir):
+        for f in files:
+            if f.endswith('.nii.gz'):
+                all_files.append(os.path.join(root, f))
+    
+    all_files = sorted(all_files)
     
     # Split train/val
     split_idx = int(len(all_files) * cfg.dataset.train_split)
