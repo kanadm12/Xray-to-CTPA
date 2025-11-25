@@ -40,7 +40,7 @@ def get_dataloaders(cfg):
     
     for root, dirs, files in os.walk(data_dir):
         for f in files:
-            if f.endswith('.nii.gz') or f.endswith('.nii'):
+            if (f.endswith('.nii.gz') or f.endswith('.nii')) and 'swapped' not in f.lower():
                 all_files.append(os.path.join(root, f))
     
     all_files = sorted(all_files)
