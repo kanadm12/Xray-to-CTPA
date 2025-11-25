@@ -99,6 +99,9 @@ def main(cfg: DictConfig):
     # Set up training
     pl.seed_everything(cfg.model.seed)
     
+    # Create dataloaders
+    train_loader, val_loader = create_dataloaders(cfg)
+    
     # Create model
     model = VQGAN_Patches(cfg)
     
@@ -131,7 +134,7 @@ def main(cfg: DictConfig):
     )
     
     # Train
-    trainer.fit(model)
+    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     
     print("\n" + "=" * 80)
     print("TRAINING COMPLETE!")
