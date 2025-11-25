@@ -227,7 +227,7 @@ class VQGAN_Patches(pl.LightningModule):
     
     def configure_optimizers(self):
         """Configure optimizers."""
-        lr = self.cfg.model.lr
+        lr = self.cfg.model.learning_rate
         
         opt_ae = torch.optim.Adam(
             list(self.encoder.parameters()) +
