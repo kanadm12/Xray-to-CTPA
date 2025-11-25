@@ -178,27 +178,28 @@ class PatchDataset(Dataset):
     def _load_volume(self, file_path: str) -> torch.Tensor:
         """Load and preprocess a single volume."""
         nii = nib.load(file_path)
-        volume = nii.get_fdata()
+        volume = nii.get_fdata()  # Returns [H, W, D] for NIfTI
         volume = torch.from_numpy(volume).float()
         
-        # Ensure volume is [H, W, D] format, add channel dimension -> [C, H, W, D]
-        if len(volume.shape) == 3:
-            volume = volume.unsqueeze(0)  # Add channel dimension
+        # Convert from NIfTI [H, W, D] to PyTorch Conv3d format [C, D, H, W]
+        # Permute: [H, W, D] -> [D, H, W] -> [C, D, H, W]
+        volume = volume.permute(2, 0, 1)  # [D, H, W]
+        volume = volume.unsqueeze(0)  # [C, D, H, W] = [1, D, H, W]
         
-        # Target shape: [C, H, W, D] = [1, 512, 512, 604]
-        target_shape = (1, 512, 512, 604)
+        # Target shape: [C, D, H, W] = [1, 604, 512, 512]
+        target_shape = (1, 604, 512, 512)
         current_shape = volume.shape
         
         # Calculate padding/crop for each dimension
         # PyTorch pad order: (left, right, top, bottom, front, back) for last 3 dims
-        pad_d = max(0, target_shape[3] - current_shape[3])  # Depth
-        pad_w = max(0, target_shape[2] - current_shape[2])  # Width  
-        pad_h = max(0, target_shape[1] - current_shape[1])  # Height
+        pad_w = max(0, target_shape[3] - current_shape[3])  # Width (last)
+        pad_h = max(0, target_shape[2] - current_shape[2])  # Height (second to last)
+        pad_d = max(0, target_shape[1] - current_shape[1])  # Depth (third to last)
         
         if pad_d > 0 or pad_h > 0 or pad_w > 0:
             volume = torch.nn.functional.pad(
                 volume,
-                (0, pad_d, 0, pad_w, 0, pad_h),  # pad last 3 dimensions
+                (0, pad_w, 0, pad_h, 0, pad_d),  # pad last 3 dimensions: W, H, D
                 mode='constant',
                 value=-1  # Use -1 for padding (will be normalized later)
             )
@@ -232,9 +233,9 @@ class PatchDataset(Dataset):
         )
         
         return {
-            'patches': patches,  # [N, C, D, H, W]
-            'coordinates': coordinates,
-            'volume_shape': volume.shape,
+            'patches': patches,  # [N, C, D, H, W] where D=depth, H=height, W=width
+            'coordinates': coordinates,  # List of (d, h, w) tuples
+            'volume_shape': volume.shape,  # [C, D, H, W]
             'volume_idx': idx
         }
 
@@ -277,9 +278,9 @@ if __name__ == "__main__":
     import nibabel as nib
     
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create dummy volumes
+        # Create dummy volumes in NIfTI format [H, W, D]
         for i in range(5):
-            volume = np.random.randn(512, 512, 604).astype(np.float32)
+            volume = np.random.randn(512, 512, 604).astype(np.float32)  # [H, W, D]
             nii = nib.Nifti1Image(volume, np.eye(4))
             nib.save(nii, os.path.join(tmpdir, f'volume_{i:03d}.nii.gz'))
         

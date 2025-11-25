@@ -14,26 +14,26 @@ from typing import Tuple, List
 
 def extract_patches_3d(
     volume: torch.Tensor,
-    patch_size: Tuple[int, int, int] = (256, 256, 128),
-    stride: Tuple[int, int, int] = (192, 192, 96),
+    patch_size: Tuple[int, int, int] = (256, 256, 256),
+    stride: Tuple[int, int, int] = (256, 256, 256),
     padding: str = 'constant'
 ) -> Tuple[torch.Tensor, List[Tuple[int, int, int]]]:
     """
     Extract overlapping 3D patches from a volume.
     
     Args:
-        volume: Input volume [C, D, H, W]
-        patch_size: Size of each patch (D, H, W)
-        stride: Stride between patches (allows overlap)
+        volume: Input volume [C, D, H, W] (Channel, Depth, Height, Width)
+        patch_size: Size of each patch (D, H, W) matching volume dims
+        stride: Stride between patches (D, H, W) - allows overlap
         padding: Padding mode for edges
         
     Returns:
         patches: Tensor of shape [N, C, D_patch, H_patch, W_patch]
-        coordinates: List of (d, h, w) coordinates for each patch
+        coordinates: List of (d, h, w) start coordinates for each patch
     """
     C, D, H, W = volume.shape
-    pd, ph, pw = patch_size
-    sd, sh, sw = stride
+    pd, ph, pw = patch_size  # patch depth, height, width
+    sd, sh, sw = stride  # stride depth, height, width
     
     # Calculate padding needed to ensure full coverage
     pad_d = (pd - (D - pd) % sd) % sd if D > pd else 0
@@ -41,10 +41,11 @@ def extract_patches_3d(
     pad_w = (pw - (W - pw) % sw) % sw if W > pw else 0
     
     # Pad volume if needed
+    # F.pad order for 5D: (W_left, W_right, H_left, H_right, D_left, D_right)
     if pad_d > 0 or pad_h > 0 or pad_w > 0:
         volume = torch.nn.functional.pad(
             volume, 
-            (0, pad_w, 0, pad_h, 0, pad_d),
+            (0, pad_w, 0, pad_h, 0, pad_d),  # Pad order: W, H, D (last to first spatial dims)
             mode=padding,
             value=0
         )
@@ -245,7 +246,7 @@ if __name__ == "__main__":
     
     # Get statistics
     stats = get_patch_statistics(
-        volume_shape=(512, 512, 604),
+        volume_shape=(1, 604, 512, 512),  # [C, D, H, W]
         patch_size=(256, 256, 128),
         stride=(192, 192, 96)
     )
