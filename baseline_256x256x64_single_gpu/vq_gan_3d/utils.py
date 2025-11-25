@@ -3,19 +3,36 @@
 
 import warnings
 import torch
-import imageio
-
 import math
 import numpy as np
-import skvideo.io
-
 import sys
 import pdb as pdb_original
-import SimpleITK as sitk
-import logging
 
-import imageio.core.util
-logging.getLogger("imageio_ffmpeg").setLevel(logging.ERROR)
+# Lazy imports for heavy dependencies - only imported when needed
+_imageio = None
+_skvideo = None
+_sitk = None
+
+def _get_imageio():
+    global _imageio
+    if _imageio is None:
+        import imageio
+        _imageio = imageio
+    return _imageio
+
+def _get_skvideo():
+    global _skvideo
+    if _skvideo is None:
+        import skvideo.io
+        _skvideo = skvideo
+    return _skvideo
+
+def _get_sitk():
+    global _sitk
+    if _sitk is None:
+        import SimpleITK
+        _sitk = SimpleITK
+    return _sitk
 
 
 class ForkedPdb(pdb_original.Pdb):
@@ -120,6 +137,7 @@ def adopt_weight(global_step, threshold=0, value=0.):
 
 
 def save_video_grid(video, fname, nrow=None, fps=6):
+    imageio = _get_imageio()
     b, c, t, h, w = video.shape
     video = video.permute(0, 2, 3, 4, 1)
     video = (video.cpu().numpy() * 255).astype('uint8')
@@ -139,8 +157,6 @@ def save_video_grid(video, fname, nrow=None, fps=6):
     for i in range(t):
         video.append(video_grid[i])
     imageio.mimsave(fname, video, fps=fps)
-    ## skvideo.io.vwrite(fname, video_grid, inputdict={'-r': '5'})
-    #print('saved videos to', fname)
 
 
 def comp_getattr(args, attr_name, default=None):
