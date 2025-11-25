@@ -100,7 +100,7 @@ def main(cfg: DictConfig):
     pl.seed_everything(cfg.model.seed)
     
     # Create dataloaders
-    train_loader, val_loader = create_dataloaders(cfg)
+    train_loader, val_loader = get_dataloaders(cfg)
     
     # Create model
     model = VQGAN_Patches(cfg)
