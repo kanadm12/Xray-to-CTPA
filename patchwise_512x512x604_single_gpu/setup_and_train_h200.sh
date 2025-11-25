@@ -106,16 +106,27 @@ echo ""
 echo "[PHASE 5] Dataset Verification"
 echo "--------"
 
-if [ ! -d "/workspace/datasets" ]; then
-    echo "✗ Dataset not found at /workspace/datasets"
-    echo "Please download the dataset first:"
+# Check multiple possible dataset locations
+DATASET_DIR=""
+if [ -d "/workspace/datasets" ]; then
+    DATASET_DIR="/workspace/datasets"
+    echo "✓ Dataset found at /workspace/datasets"
+elif [ -d "/workspace/Xray-to-CTPA/datasets" ]; then
+    DATASET_DIR="/workspace/Xray-to-CTPA/datasets"
+    echo "✓ Dataset found at /workspace/Xray-to-CTPA/datasets"
+else
+    echo "✗ Dataset not found at either:"
+    echo "   - /workspace/datasets"
+    echo "   - /workspace/Xray-to-CTPA/datasets"
+    echo ""
+    echo "Please download the dataset:"
     echo "  azcopy copy 'https://ctbigdata.blob.core.windows.net/ct-big-data/rsna/rsna_extracted/train' '/workspace/datasets/' --recursive"
     exit 1
 fi
 
-NIFTI_COUNT=$(find /workspace/datasets -name "*.nii.gz" 2>/dev/null | wc -l)
+NIFTI_COUNT=$(find "$DATASET_DIR" -name "*.nii.gz" 2>/dev/null | wc -l)
 if [ "$NIFTI_COUNT" -eq 0 ]; then
-    echo "✗ No .nii.gz files found in /workspace/datasets"
+    echo "✗ No .nii.gz files found in $DATASET_DIR"
     exit 1
 fi
 
@@ -125,7 +136,8 @@ echo "✓ Dataset found: $NIFTI_COUNT NIfTI files"
 python -c "
 import nibabel as nib
 import glob
-files = glob.glob('/workspace/datasets/*.nii.gz')
+dataset_dir = '$DATASET_DIR'
+files = glob.glob(f'{dataset_dir}/*.nii.gz')
 if files:
     img = nib.load(files[0])
     print(f'✓ Sample volume shape: {img.shape}')
@@ -157,6 +169,29 @@ print(f'✓ Learning rate: {cfg.model.learning_rate}')
 " || {
     echo "✗ Configuration loading failed"
     exit 1
+}
+
+# Update dataset root_dir in config if needed
+echo ""
+echo "Updating dataset path in configuration..."
+python -c "
+import yaml
+import os
+
+dataset_dir = '$DATASET_DIR'
+config_file = 'config/dataset/full_resolution_ctpa.yaml'
+
+with open(config_file, 'r') as f:
+    config = yaml.safe_load(f)
+
+config['root_dir'] = dataset_dir
+
+with open(config_file, 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+
+print(f'✓ Updated dataset root_dir to: {dataset_dir}')
+" || {
+    echo "⚠ Warning: Could not update config, will use default"
 }
 
 echo ""
