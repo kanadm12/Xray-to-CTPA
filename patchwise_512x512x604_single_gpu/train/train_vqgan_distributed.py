@@ -13,7 +13,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-sys.path.append('..')
+# Add paths for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+patchwise_dir = os.path.dirname(current_dir)
+repo_root = os.path.dirname(patchwise_dir)
+
+sys.path.insert(0, patchwise_dir)
+sys.path.insert(0, repo_root)
+
 from dataset.patch_dataset import PatchDataset, collate_patches
 from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
 

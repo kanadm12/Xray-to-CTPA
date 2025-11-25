@@ -10,7 +10,17 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from typing import Dict
 import sys
-sys.path.append('../..')
+import os
+
+# Add paths for imports
+current_file = os.path.abspath(__file__)
+model_dir = os.path.dirname(current_file)
+vqgan_3d_dir = os.path.dirname(model_dir)
+patchwise_dir = os.path.dirname(vqgan_3d_dir)
+repo_root = os.path.dirname(patchwise_dir)
+
+sys.path.insert(0, patchwise_dir)
+sys.path.insert(0, repo_root)
 
 # Import from baseline implementation
 from baseline_256x256x64_single_gpu.vq_gan_3d.model.vqgan import (
