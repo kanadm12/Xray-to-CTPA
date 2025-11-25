@@ -3,8 +3,8 @@
 
 name: VQGAN_PATCHES
 seed: 1234
-batch_size: 1  # Process 1 volume at a time (~24 patches)
-num_workers: 4  # Reduced to avoid memory issues
+batch_size: 1  # Process 1 volume at a time (~12 patches with 256^3)
+num_workers: 0  # Single-threaded to avoid multiprocessing deadlocks
 
 # Single GPU settings
 gpus: 1
