@@ -3,12 +3,12 @@
 
 name: VQGAN_PATCHES
 seed: 1234
-batch_size: 4  # Single GPU - appropriate for H200
-num_workers: 8
+batch_size: 1  # Process 1 volume at a time (~24 patches)
+num_workers: 4  # Reduced to avoid memory issues
 
 # Single GPU settings
 gpus: 1
-accumulate_grad_batches: 1
+accumulate_grad_batches: 4  # Accumulate to effective batch of 4 volumes
 
 # Training
 default_root_dir: ./outputs/vqgan_patches_distributed/
