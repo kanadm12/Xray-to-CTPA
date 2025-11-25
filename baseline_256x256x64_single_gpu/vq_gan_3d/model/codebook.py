@@ -4,6 +4,7 @@
 import numpy as np
 import os
 import sys
+import importlib.util
 
 import torch
 import torch.nn as nn
@@ -13,10 +14,15 @@ import torch.distributed as dist
 # Add parent paths for relative imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 vqgan_3d_dir = os.path.dirname(current_dir)
-if vqgan_3d_dir not in sys.path:
-    sys.path.insert(0, vqgan_3d_dir)
 
-from utils import shift_dim
+# Import from baseline utils using importlib
+import importlib.util
+spec = importlib.util.spec_from_file_location(
+    "baseline_utils", os.path.join(vqgan_3d_dir, "utils.py")
+)
+baseline_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(baseline_utils)
+shift_dim = baseline_utils.shift_dim
 
 
 class Codebook(nn.Module):

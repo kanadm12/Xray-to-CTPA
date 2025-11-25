@@ -7,6 +7,7 @@ import numpy as np
 import pickle as pkl
 import sys
 import os
+import importlib.util
 
 import pytorch_lightning as pl
 import torch
@@ -18,9 +19,19 @@ from torch.utils.checkpoint import checkpoint
 # Add parent paths for relative imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 vqgan_3d_dir = os.path.dirname(current_dir)
-sys.path.insert(0, vqgan_3d_dir)
+baseline_dir = os.path.dirname(vqgan_3d_dir)
 
-from utils import shift_dim, adopt_weight, comp_getattr
+# Import from baseline utils
+sys.path.insert(0, vqgan_3d_dir)
+spec = __import__('importlib.util').util.spec_from_file_location(
+    "baseline_utils", os.path.join(vqgan_3d_dir, "utils.py")
+)
+baseline_utils = __import__('importlib.util').util.module_from_spec(spec)
+spec.loader.exec_module(baseline_utils)
+shift_dim = baseline_utils.shift_dim
+adopt_weight = baseline_utils.adopt_weight
+comp_getattr = baseline_utils.comp_getattr
+
 from .lpips import LPIPS
 from .codebook import Codebook
 
