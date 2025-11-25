@@ -179,28 +179,32 @@ class PatchDataset(Dataset):
         """Load and preprocess a single volume."""
         nii = nib.load(file_path)
         volume = nii.get_fdata()
-        volume = torch.from_numpy(volume).float().unsqueeze(0)
+        volume = torch.from_numpy(volume).float()
         
-        # Pad to standard size (512x512x604) to ensure all volumes same size
-        target_shape = (512, 512, 604)
-        current_shape = volume.shape[1:]  # Remove channel dimension
+        # Ensure volume is [H, W, D] format, add channel dimension -> [C, H, W, D]
+        if len(volume.shape) == 3:
+            volume = volume.unsqueeze(0)  # Add channel dimension
         
-        # Calculate padding needed
-        pad_d = max(0, target_shape[2] - current_shape[2])
-        pad_h = max(0, target_shape[0] - current_shape[0])
-        pad_w = max(0, target_shape[1] - current_shape[1])
+        # Target shape: [C, H, W, D] = [1, 512, 512, 604]
+        target_shape = (1, 512, 512, 604)
+        current_shape = volume.shape
+        
+        # Calculate padding/crop for each dimension
+        # PyTorch pad order: (left, right, top, bottom, front, back) for last 3 dims
+        pad_d = max(0, target_shape[3] - current_shape[3])  # Depth
+        pad_w = max(0, target_shape[2] - current_shape[2])  # Width  
+        pad_h = max(0, target_shape[1] - current_shape[1])  # Height
         
         if pad_d > 0 or pad_h > 0 or pad_w > 0:
-            # Pad symmetrically (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back)
             volume = torch.nn.functional.pad(
                 volume,
-                (0, pad_w, 0, pad_h, 0, pad_d),
+                (0, pad_d, 0, pad_w, 0, pad_h),  # pad last 3 dimensions
                 mode='constant',
-                value=volume.min()  # Use min value for padding
+                value=-1  # Use -1 for padding (will be normalized later)
             )
         
-        # Crop if larger than target
-        volume = volume[:, :target_shape[0], :target_shape[1], :target_shape[2]]
+        # Crop if larger than target (crop to exact size)
+        volume = volume[:, :target_shape[1], :target_shape[2], :target_shape[3]]
         
         if self.normalize:
             volume_min = volume.min()
