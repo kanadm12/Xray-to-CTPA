@@ -36,23 +36,32 @@ def get_dataloaders(cfg):
     if os.path.exists(data_dir):
         print(f"Contents: {os.listdir(data_dir)[:10]}")  # First 10 items
     
-    all_files = []
+    # Optional: Limit to subset of patient folders for faster initial training
+    max_patients = cfg.dataset.get('max_patients', None)
     
-    for root, dirs, files in os.walk(data_dir):
-        for f in files:
-            if (f.endswith('.nii.gz') or f.endswith('.nii')) and 'swapped' not in f.lower():
-                all_files.append(os.path.join(root, f))
+    # Get all patient folders first
+    patient_folders = sorted([
+        os.path.join(data_dir, d) 
+        for d in os.listdir(data_dir) 
+        if os.path.isdir(os.path.join(data_dir, d))
+    ])
+    
+    if max_patients is not None and max_patients > 0:
+        patient_folders = patient_folders[:max_patients]
+        print(f"Limited to first {max_patients} patient folders")
+    
+    # Collect all .nii.gz files from selected patient folders
+    all_files = []
+    for patient_folder in patient_folders:
+        for root, dirs, files in os.walk(patient_folder):
+            for f in files:
+                if (f.endswith('.nii.gz') or f.endswith('.nii')) and 'swapped' not in f.lower():
+                    all_files.append(os.path.join(root, f))
     
     all_files = sorted(all_files)
     
     if len(all_files) == 0:
         raise ValueError(f"No NIfTI files found in {data_dir}. Please check the dataset path.")
-    
-    # Optional: Limit to subset of data for faster initial training
-    max_files = cfg.dataset.get('max_files', None)
-    if max_files is not None and max_files > 0:
-        all_files = all_files[:max_files]
-        print(f"Limited to first {len(all_files)} files for faster training")
     
     # Split train/val
     split_idx = int(len(all_files) * cfg.dataset.train_split)
