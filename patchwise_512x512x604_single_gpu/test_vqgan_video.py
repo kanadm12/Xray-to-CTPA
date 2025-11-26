@@ -16,7 +16,7 @@ from tqdm import tqdm
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from vq_gan_3d.model.vqgan_patches import VQGANPatches
+from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
 from utils.patch_utils import extract_patches_3d, reconstruct_from_patches_3d
 
 
@@ -34,7 +34,7 @@ def load_checkpoint(checkpoint_path, device='cuda'):
     print(f"Model config: embedding_dim={model_cfg['embedding_dim']}, n_codes={model_cfg['n_codes']}")
     
     # Initialize model
-    model = VQGANPatches(hparams)
+    model = VQGAN_Patches(hparams)
     
     # Load state dict
     model.load_state_dict(ckpt['state_dict'])
