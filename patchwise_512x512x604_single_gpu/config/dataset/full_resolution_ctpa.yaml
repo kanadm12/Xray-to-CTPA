@@ -7,8 +7,8 @@ image_channels: 1
 
 # Patch extraction parameters (D, H, W order to match Conv3d)
 # Volume shape: [C=1, D=604, H=512, W=512]
-patch_size: [256, 256, 256]  # [D, H, W] - creates patches of 256x256x256
-stride: [256, 256, 256]       # [D, H, W] - No overlap for memory efficiency
+patch_size: [128, 128, 128]  # [D, H, W] - smaller patches to fit in memory
+stride: [128, 128, 128]       # [D, H, W] - No overlap for memory efficiency
 
 # Data split
 train_split: 0.8
@@ -19,7 +19,7 @@ augmentation: false  # Can add augmentation later
 
 # Statistics
 # Full volume shape: [C=1, D=604, H=512, W=512] (Conv3d format)
-# Patch size: [D=256, H=256, W=256]
-# Stride: [D=256, H=256, W=256] (no overlap)
-# Patches per volume: (604/256)×(512/256)×(512/256) ≈ 3×2×2 = 12 patches
-# Memory efficient: processes 2 patches at a time (micro-batching)
+# Patch size: [D=128, H=128, W=128]
+# Stride: [D=128, H=128, W=128] (no overlap)
+# Patches per volume: (604/128)×(512/128)×(512/128) ≈ 5×4×4 = 80 patches
+# Memory efficient: processes 1 patch at a time (micro-batching)
