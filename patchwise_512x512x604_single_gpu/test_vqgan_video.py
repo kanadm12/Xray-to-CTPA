@@ -13,8 +13,9 @@ from pathlib import Path
 import cv2
 from tqdm import tqdm
 
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add current directory to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 
 from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
 from utils.patch_utils import extract_patches_3d, reconstruct_from_patches_3d
