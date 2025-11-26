@@ -38,9 +38,15 @@ def load_checkpoint(checkpoint_path, device='cuda'):
     
     # Get hyperparameters
     hparams = ckpt['hyper_parameters']
-    model_cfg = hparams['model']
     
-    print(f"Model config: embedding_dim={model_cfg['embedding_dim']}, n_codes={model_cfg['n_codes']}")
+    # Handle different checkpoint structures
+    if 'model' in hparams:
+        model_cfg = hparams['model']
+    else:
+        # Extract model config directly from hparams
+        model_cfg = hparams
+    
+    print(f"Model config keys: {list(model_cfg.keys())[:10]}")
     
     # Initialize model
     model = VQGAN_Patches(hparams)
@@ -50,7 +56,9 @@ def load_checkpoint(checkpoint_path, device='cuda'):
     model = model.to(device)
     model.eval()
     
-    print(f"Model loaded from epoch {ckpt['epoch']}, global step {ckpt['global_step']}")
+    epoch = ckpt.get('epoch', 'unknown')
+    global_step = ckpt.get('global_step', 'unknown')
+    print(f"Model loaded from epoch {epoch}, global step {global_step}")
     
     return model, hparams
 
