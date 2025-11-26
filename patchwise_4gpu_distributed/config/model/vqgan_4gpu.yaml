@@ -10,7 +10,7 @@ gpus: 4
 accumulate_grad_batches: 1  # No accumulation needed with 4 GPUs
 max_epochs: 30
 learning_rate: 1e-4
-precision: 16  # fp16 for memory efficiency
+precision: 32  # fp32 for stability (manual optimization issue with fp16)
 
 # Output directory
 default_root_dir: ./outputs/vqgan_patches_4gpu/
