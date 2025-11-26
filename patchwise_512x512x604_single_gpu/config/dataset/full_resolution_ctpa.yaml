@@ -4,6 +4,7 @@
 name: FULL_RESOLUTION_CTPA
 root_dir: /workspace/Xray-to-CTPA/datasets/
 image_channels: 1
+max_files: 360  # Limit to ~30 patients for faster initial training (set to null for all data)
 
 # Patch extraction parameters (D, H, W order to match Conv3d)
 # Volume shape: [C=1, D=604, H=512, W=512]

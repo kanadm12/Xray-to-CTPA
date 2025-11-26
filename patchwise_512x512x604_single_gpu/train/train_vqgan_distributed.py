@@ -48,6 +48,12 @@ def get_dataloaders(cfg):
     if len(all_files) == 0:
         raise ValueError(f"No NIfTI files found in {data_dir}. Please check the dataset path.")
     
+    # Optional: Limit to subset of data for faster initial training
+    max_files = cfg.dataset.get('max_files', None)
+    if max_files is not None and max_files > 0:
+        all_files = all_files[:max_files]
+        print(f"Limited to first {len(all_files)} files for faster training")
+    
     # Split train/val
     split_idx = int(len(all_files) * cfg.dataset.train_split)
     train_files = all_files[:split_idx]
