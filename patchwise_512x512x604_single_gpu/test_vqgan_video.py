@@ -15,10 +15,18 @@ from tqdm import tqdm
 
 # Add current directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
-from utils.patch_utils import extract_patches_3d, reconstruct_from_patches_3d
+
+# Import patch utilities directly
+import importlib.util
+spec = importlib.util.spec_from_file_location("patch_utils", os.path.join(current_dir, "utils", "patch_utils.py"))
+patch_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(patch_utils)
+extract_patches_3d = patch_utils.extract_patches_3d
+reconstruct_from_patches = patch_utils.reconstruct_from_patches
 
 
 def load_checkpoint(checkpoint_path, device='cuda'):
@@ -96,7 +104,7 @@ def reconstruct_volume_patches(model, volume, patch_size=(128, 128, 128), stride
     
     # Reconstruct full volume from patches
     print("Reconstructing full volume from patches...")
-    recon_volume = reconstruct_from_patches_3d(
+    recon_volume = reconstruct_from_patches(
         reconstructed_patches, 
         positions, 
         volume.shape, 
