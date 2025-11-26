@@ -18,16 +18,16 @@ from pytorch_lightning.strategies import DDPStrategy
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-# Add paths for imports
+# Add paths for imports - use single-GPU implementation
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-repo_root = os.path.dirname(parent_dir)
+repo_root = os.path.dirname(current_dir)
+single_gpu_dir = os.path.join(repo_root, 'patchwise_512x512x604_single_gpu')
 
-sys.path.insert(0, parent_dir)
+sys.path.insert(0, single_gpu_dir)
 sys.path.insert(0, repo_root)
 
 from dataset.patch_dataset import PatchDataset, collate_patches
-from vq_gan_3d.model.vqgan_patches import VQGANPatches
+from vq_gan_3d.model.vqgan_patches import VQGAN_Patches
 
 
 def get_dataloaders(cfg):
@@ -147,7 +147,7 @@ def main(cfg: DictConfig):
     train_loader, val_loader = get_dataloaders(cfg)
     
     # Create model
-    model = VQGANPatches(cfg)
+    model = VQGAN_Patches(cfg)
     
     # Set up callbacks (only on rank 0 to avoid conflicts)
     callbacks = [
