@@ -44,5 +44,5 @@ padding_type: constant
 num_groups: 32
 
 # Distributed training settings
-find_unused_parameters: false
+find_unused_parameters: true  # Required when discriminator is disabled
 sync_batchnorm: true
