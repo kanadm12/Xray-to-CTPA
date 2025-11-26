@@ -45,7 +45,7 @@ class VQGAN_Patches(pl.LightningModule):
         self.embedding_dim = cfg.model.embedding_dim
         self.n_codes = cfg.model.n_codes
         self.automatic_optimization = False
-        self.patch_micro_batch_size = 2  # Process 2 patches at a time to save memory
+        self.patch_micro_batch_size = 1  # Process 1 patch at a time (training needs more memory than validation)
         
         # Encoder/Decoder (same as baseline)
         self.encoder = Encoder(
@@ -121,23 +121,11 @@ class VQGAN_Patches(pl.LightningModule):
     
     def forward(self, x):
         """Forward pass through encoder, codebook, decoder."""
-        # Use gradient checkpointing to save memory
-        if self.training:
-            z = torch.utils.checkpoint.checkpoint(
-                lambda x: self.pre_vq_conv(self.encoder(x)), 
-                x, 
-                use_reentrant=False
-            )
-            vq_output = self.codebook(z)
-            x_recon = torch.utils.checkpoint.checkpoint(
-                lambda emb: self.decoder(self.post_vq_conv(emb)), 
-                vq_output['embeddings'], 
-                use_reentrant=False
-            )
-        else:
-            z = self.pre_vq_conv(self.encoder(x))
-            vq_output = self.codebook(z)
-            x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
+        # Simple forward pass without gradient checkpointing
+        # (checkpointing was causing OOM during backward pass)
+        z = self.pre_vq_conv(self.encoder(x))
+        vq_output = self.codebook(z)
+        x_recon = self.decoder(self.post_vq_conv(vq_output['embeddings']))
         
         # Clamp output
         x_recon = torch.clamp(x_recon, -1.0, 1.0)
