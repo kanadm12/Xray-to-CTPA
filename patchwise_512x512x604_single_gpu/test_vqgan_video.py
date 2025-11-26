@@ -40,16 +40,16 @@ def load_checkpoint(checkpoint_path, device='cuda'):
     hparams = ckpt['hyper_parameters']
     
     # Handle different checkpoint structures
-    if 'model' in hparams:
-        model_cfg = hparams['model']
+    if 'cfg' in hparams:
+        # Use the cfg object directly (Hydra config)
+        cfg = hparams['cfg']
+        print(f"Model config: embedding_dim={cfg.model.embedding_dim}, n_codes={cfg.model.n_codes}")
     else:
-        # Extract model config directly from hparams
-        model_cfg = hparams
+        cfg = hparams
+        print(f"Model config keys: {list(cfg.keys())[:10]}")
     
-    print(f"Model config keys: {list(model_cfg.keys())[:10]}")
-    
-    # Initialize model
-    model = VQGAN_Patches(hparams)
+    # Initialize model - pass cfg instead of hparams
+    model = VQGAN_Patches(cfg)
     
     # Load state dict
     model.load_state_dict(ckpt['state_dict'])
@@ -60,7 +60,7 @@ def load_checkpoint(checkpoint_path, device='cuda'):
     global_step = ckpt.get('global_step', 'unknown')
     print(f"Model loaded from epoch {epoch}, global step {global_step}")
     
-    return model, hparams
+    return model, cfg
 
 
 def load_volume(nifti_path):
