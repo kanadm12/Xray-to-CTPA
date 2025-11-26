@@ -1,0 +1,48 @@
+name: VQGAN_PATCHES_4GPU_WITH_DISC
+seed: 1234
+
+# Per-GPU batch size (effective batch = 1 × 4 = 4)
+batch_size: 1
+num_workers: 4  # Per GPU, total = 16 workers
+
+# Training configuration
+gpus: 4
+accumulate_grad_batches: 1
+max_epochs: 50  # More epochs for discriminator training
+learning_rate: 1e-4
+precision: 16
+
+# Output directory
+default_root_dir: ./outputs/vqgan_patches_4gpu_disc/
+
+# Model architecture
+embedding_dim: 64
+n_codes: 512
+n_hiddens: 64
+downsample: [4, 4, 4]
+
+# Discriminator configuration (ENABLED)
+disc_channels: 64
+disc_layers: 3
+discriminator_iter_start: 10000  # Start after ~5 epochs warmup
+disc_loss_type: hinge
+
+# Loss weights (DISCRIMINATOR ENABLED)
+image_gan_weight: 1.0      # Enable 2D image discriminator
+video_gan_weight: 0.5      # Enable 3D video discriminator
+l1_weight: 1.0             # Keep reconstruction loss
+gan_feat_weight: 4.0       # Feature matching for stability
+perceptual_weight: 0.1     # Enable LPIPS perceptual loss
+
+# Codebook settings
+restart_thres: 1.0
+no_random_restart: false
+
+# Normalization
+norm_type: group
+padding_type: constant
+num_groups: 32
+
+# Distributed training settings
+find_unused_parameters: false
+sync_batchnorm: true

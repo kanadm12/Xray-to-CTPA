@@ -1,0 +1,69 @@
+name: DDPM_4GPU
+seed: 1234
+
+# VQ-GAN checkpoint (REQUIRED - from trained VQ-GAN)
+vqgan_ckpt: ./outputs/vqgan_patches_4gpu_disc/checkpoints/last.ckpt
+vae_ckpt: null
+
+# Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])
+# Original: 512×512×604 → Latent: 128×128×151
+diffusion_img_size: 128      # H, W after VQ-GAN encoding
+diffusion_depth_size: 151    # D after VQ-GAN encoding (604/4 = 151)
+diffusion_num_channels: 64   # VQ-GAN embedding_dim
+dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
+
+# Training configuration
+batch_size: 1   # Per GPU (effective = 4)
+num_workers: 4
+gpus: 4
+
+# Output directory
+results_folder: ./checkpoints/ddpm_4gpu/
+results_folder_postfix: ''
+load_milestone: false
+
+# Conditioning
+cond_dim: 512  # X-ray feature dimension
+classifier_free_guidance: true  # Enable CFG for better quality
+medclip: true  # Use MedCLIP for X-ray encoding
+
+# Training hyperparameters
+train_lr: 1e-4
+timesteps: 1000  # Diffusion steps
+sampling_timesteps: 250  # DDIM sampling (faster)
+train_num_steps: 100000  # Total training steps
+gradient_accumulate_every: 1  # No accumulation needed with 4 GPUs
+ema_decay: 0.995
+amp: true  # Mixed precision
+max_grad_norm: 1.0
+
+# Model architecture
+denoising_fn: Unet3D
+objective: pred_x0
+
+# Loss weights
+loss_type: l1_lpips
+l1_weight: 1.0
+perceptual_weight: 0.01
+discriminator_weight: 0.0  # Can enable after warmup
+classification_weight: 0.0
+
+# LoRA fine-tuning
+lora: true
+lora_first: false
+
+# Sampling
+save_and_sample_every: 1000
+num_sample_rows: 1
+
+# Dataset normalization (CTPA statistics)
+name_dataset: CTPA
+dataset_min_value: -12.911299
+dataset_max_value: 9.596558
+
+# Logging
+logger: tensorboard
+
+# Distributed settings
+find_unused_parameters: false
+sync_batchnorm: true

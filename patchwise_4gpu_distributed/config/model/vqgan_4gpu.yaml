@@ -1,0 +1,48 @@
+name: VQGAN_PATCHES_4GPU
+seed: 1234
+
+# Per-GPU batch size (effective batch = 1 × 4 = 4)
+batch_size: 1
+num_workers: 4  # Per GPU, total = 16 workers
+
+# Training configuration
+gpus: 4
+accumulate_grad_batches: 1  # No accumulation needed with 4 GPUs
+max_epochs: 30
+learning_rate: 1e-4
+precision: 16  # fp16 for memory efficiency
+
+# Output directory
+default_root_dir: ./outputs/vqgan_patches_4gpu/
+
+# Model architecture
+embedding_dim: 64
+n_codes: 512
+n_hiddens: 64
+downsample: [4, 4, 4]
+
+# Discriminator configuration (disabled initially)
+disc_channels: 64
+disc_layers: 3
+discriminator_iter_start: 100000
+disc_loss_type: hinge
+
+# Loss weights (pure reconstruction for now)
+image_gan_weight: 0.0
+video_gan_weight: 0.0
+l1_weight: 1.0
+gan_feat_weight: 0.0
+perceptual_weight: 0.0
+
+# Codebook settings
+restart_thres: 1.0
+no_random_restart: false
+
+# Normalization
+norm_type: group
+padding_type: constant
+num_groups: 32
+
+# Distributed training settings
+find_unused_parameters: false
+sync_batchnorm: true

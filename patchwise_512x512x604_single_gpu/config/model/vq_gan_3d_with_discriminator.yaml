@@ -1,0 +1,44 @@
+seed: 1234
+batch_size: 1
+num_workers: 0  # Keep at 0 to avoid deadlocks
+
+gpus: 1
+accumulate_grad_batches: 1
+default_root_dir: ./outputs/vqgan_patches_with_disc/
+max_epochs: 50  # More epochs needed with discriminator
+precision: 16  # fp16 for memory efficiency
+learning_rate: 1e-4
+
+# Model architecture (same as before)
+embedding_dim: 64
+n_codes: 512
+n_hiddens: 64
+downsample: [4, 4, 4]
+
+# Discriminator configuration
+disc_channels: 64
+disc_layers: 3
+disc_loss_type: hinge
+
+# *** KEY CHANGE: Enable discriminators and perceptual loss ***
+discriminator_iter_start: 10000  # Start discriminator after 10k steps (~5 epochs warmup)
+image_gan_weight: 1.0            # Enable 2D image discriminator
+video_gan_weight: 0.5            # Enable 3D video discriminator (lower weight)
+gan_feat_weight: 4.0             # Feature matching loss (helps stability)
+perceptual_weight: 0.1           # Enable LPIPS perceptual loss
+
+# Reconstruction loss
+l1_weight: 1.0  # Keep L1 loss active
+
+# Codebook settings
+restart_thres: 1.0
+no_random_restart: false
+
+# Normalization
+norm_type: group
+padding_type: constant
+num_groups: 32
+
+# Distributed training settings
+find_unused_parameters: false
+sync_batchnorm: true

@@ -1,0 +1,11 @@
+defaults:
+  - dataset: xray_ctpa_ddpm
+  - model: ddpm_4gpu
+  - _self_
+
+# Hydra configuration
+hydra:
+  run:
+    dir: ./outputs/hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
