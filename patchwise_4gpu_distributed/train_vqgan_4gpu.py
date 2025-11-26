@@ -126,7 +126,10 @@ def get_dataloaders(cfg):
     return train_loader, val_loader
 
 
-@hydra.main(config_path="../config", config_name="base_cfg", version_base=None)
+# Get absolute config path
+_config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
+
+@hydra.main(config_path=_config_dir, config_name="base_cfg", version_base=None)
 def main(cfg: DictConfig):
     """
     Main training function for 4-GPU distributed training.
