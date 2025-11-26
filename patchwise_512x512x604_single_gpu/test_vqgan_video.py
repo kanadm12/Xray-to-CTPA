@@ -108,7 +108,10 @@ def reconstruct_volume_patches(model, volume, patch_size=(128, 128, 128), stride
             # Forward pass through VQ-GAN
             recon_patch, vq_output = model(patch)
             
-            reconstructed_patches.append(recon_patch.cpu())
+            reconstructed_patches.append(recon_patch.cpu().squeeze(0))  # Remove batch dimension
+    
+    # Stack patches into a single tensor
+    reconstructed_patches = torch.stack(reconstructed_patches, dim=0)  # [N, C, D, H, W]
     
     # Reconstruct full volume from patches
     print("Reconstructing full volume from patches...")
