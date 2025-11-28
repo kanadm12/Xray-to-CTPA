@@ -1136,6 +1136,23 @@ class GaussianDiffusion(pl.LightningModule):
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
         return self.p_losses(ct, t, cond=xray, label=label, *args, **kwargs)
 
+    def training_step(self, batch, batch_idx):
+        """PyTorch Lightning training step."""
+        loss = self.forward(batch)
+        self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        """PyTorch Lightning validation step."""
+        loss = self.forward(batch)
+        self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        return loss
+
+    def configure_optimizers(self):
+        """PyTorch Lightning optimizer configuration."""
+        optimizer = torch.optim.Adam(self.denoise_fn.parameters(), lr=1e-4)
+        return optimizer
+
 # trainer class
 CHANNELS_TO_MODE = {
     1: 'L',
