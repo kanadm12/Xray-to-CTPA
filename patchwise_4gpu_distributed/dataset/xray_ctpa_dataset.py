@@ -64,7 +64,7 @@ class XrayCTPADataset(Dataset):
             
             # Find CTPA .nii.gz file (exclude *_swapped.nii.gz)
             ctpa_files = [
-                f for f in glob(os.path.join(patient_folder, '**', '*.nii.gz'), recursive=True)
+                f for f in glob(os.path.join(patient_folder, '*.nii.gz'))
                 if 'swapped' not in os.path.basename(f).lower()
             ]
             
@@ -73,9 +73,8 @@ class XrayCTPADataset(Dataset):
                 
             ctpa_path = ctpa_files[0]  # Take first valid CTPA file
             
-            # X-ray PNG files are in the parent datasets directory, not in patient folders
-            # Pattern: {patient_id}_pa_drr.png in the parent ctpa_dir
-            xray_path = os.path.join(ctpa_dir, f"{patient_id}_pa_drr.png")
+            # Find corresponding X-ray PNG in same patient folder
+            xray_path = os.path.join(patient_folder, f"{patient_id}_pa_drr.png")
             
             if os.path.exists(xray_path):
                 self.paired_files.append({
