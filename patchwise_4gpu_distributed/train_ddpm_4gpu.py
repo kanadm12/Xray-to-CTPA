@@ -178,28 +178,26 @@ def main_wrapper():
             static_graph=False,
         )
         
-        # Create trainer
-        trainer = pl.Trainer(
-            accelerator='gpu',
-            devices=4,
-            strategy=ddp_strategy,
-            max_steps=cfg.model.train_num_steps,
-            precision=16 if cfg.model.amp else 32,
-            accumulate_grad_batches=cfg.model.gradient_accumulate_every,
-            callbacks=callbacks,
-            log_every_n_steps=50,
-            val_check_interval=cfg.model.save_and_sample_every,
-            enable_progress_bar=True,
-            enable_model_summary=local_rank == 0,
-            gradient_clip_val=cfg.model.max_grad_norm,
-            sync_batchnorm=cfg.model.get('sync_batchnorm', True),
-        )
-        
-        # Train
+    # Create trainer
+    trainer = pl.Trainer(
+        accelerator='gpu',
+        devices=4,
+        strategy=ddp_strategy,
+        max_epochs=cfg.model.get('max_epochs', 30),
+        precision=16 if cfg.model.amp else 32,
+        accumulate_grad_batches=cfg.model.gradient_accumulate_every,
+        callbacks=callbacks,
+        log_every_n_steps=50,
+        check_val_every_n_epoch=1,
+        enable_progress_bar=True,
+        enable_model_summary=local_rank == 0,
+        gradient_clip_val=cfg.model.max_grad_norm,
+        sync_batchnorm=cfg.model.get('sync_batchnorm', True),
+    )        # Train
         if local_rank == 0:
             print("\nStarting DDPM training...")
-            print(f"Training for {cfg.model.train_num_steps} steps")
-            print(f"Saving checkpoints every {cfg.model.save_and_sample_every} steps")
+            print(f"Training for {cfg.model.get('max_epochs', 30)} epochs")
+            print(f"Train samples: {len(train_loader.dataset)}, Val samples: {len(val_loader.dataset)}")
         
         trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader)
         

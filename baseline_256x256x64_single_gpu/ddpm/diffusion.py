@@ -8,6 +8,7 @@ import torch
 from torch import nn, einsum
 import torch.nn.functional as F
 from functools import partial
+import pytorch_lightning as pl
 
 from torch.utils import data
 from pathlib import Path
@@ -684,7 +685,7 @@ def enforce_zero_terminal_snr(betas):
 
     return betas
 
-class GaussianDiffusion(nn.Module):
+class GaussianDiffusion(pl.LightningModule):
     def __init__(
         self,
         denoise_fn,
