@@ -143,8 +143,9 @@ class XrayCTPADataset(Dataset):
         """
         Returns:
             dict with keys:
-                'xray': Tensor of shape (1, H, W) - X-ray image
-                'ctpa': Tensor of shape (1, D, H, W) - CTPA volume
+                'ct': Tensor of shape (1, D, H, W) - CTPA volume (expected by GaussianDiffusion)
+                'cxr': Tensor of shape (1, H, W) - X-ray image (expected by GaussianDiffusion)
+                'target': Tensor of shape (1,) - Label for classification (dummy value)
                 'patient_id': str - Patient identifier
         """
         sample = self.paired_files[idx]
@@ -152,9 +153,13 @@ class XrayCTPADataset(Dataset):
         xray = self._load_xray(sample['xray'])
         ctpa = self._load_ctpa(sample['ctpa'])
         
+        # Create dummy target label (not used when classification_weight=0)
+        target = torch.tensor([0.0], dtype=torch.float32)
+        
         return {
-            'xray': xray,
-            'ctpa': ctpa,
+            'ct': ctpa,           # Match expected key in forward()
+            'cxr': xray,          # Match expected key in forward()
+            'target': target,     # Match expected key in forward()
             'patient_id': sample['patient_id']
         }
 
