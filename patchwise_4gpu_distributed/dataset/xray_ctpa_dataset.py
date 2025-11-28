@@ -103,6 +103,10 @@ class XrayCTPADataset(Dataset):
         """Load X-ray PNG and convert to tensor."""
         # Load PNG image
         img = Image.open(xray_path).convert('L')  # Grayscale
+        
+        # Resize to 224x224 for MedCLIP (expects 224x224 input)
+        img = img.resize((224, 224), Image.BILINEAR)
+        
         xray = np.array(img, dtype=np.float32)
         
         # Normalize to [0, 1] or [-1, 1]
@@ -111,8 +115,8 @@ class XrayCTPADataset(Dataset):
         else:
             xray = (xray / 255.0) * 2.0 - 1.0  # [-1, 1]
         
-        # Add channel dimension: (H, W) → (1, H, W)
-        xray = torch.from_numpy(xray).unsqueeze(0).float()
+        # Convert to 3-channel for MedCLIP: (H, W) → (3, H, W)
+        xray = torch.from_numpy(xray).unsqueeze(0).repeat(3, 1, 1).float()
         
         return xray
     
