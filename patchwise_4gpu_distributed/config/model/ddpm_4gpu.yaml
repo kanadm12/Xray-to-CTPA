@@ -23,8 +23,8 @@ results_folder_postfix: ''
 load_milestone: false
 
 # Conditioning
-cond_dim: 512  # X-ray feature dimension
-classifier_free_guidance: true  # Enable CFG for better quality
+cond_dim: 512  # X-ray feature dimension (MedCLIP output)
+classifier_free_guidance: false  # Disabled to avoid dimension mismatch with labels
 medclip: true  # Use MedCLIP for X-ray encoding
 
 # Training hyperparameters
