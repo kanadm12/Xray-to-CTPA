@@ -1,0 +1,76 @@
+name: DDPM_4GPU_Patches
+seed: 1234
+
+# VQ-GAN checkpoint (REQUIRED - from trained VQ-GAN)
+vqgan_ckpt: ./outputs/vqgan_patches_4gpu/checkpoints/last.ckpt
+vae_ckpt: null
+
+# Patchwise settings
+use_patches: true
+patch_size: [128, 128, 128]  # D, H, W for CTPA patches
+stride: [96, 96, 96]  # 25% overlap between patches
+
+# Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])
+# Patch: 128×128×128 → Latent: 32×32×32 (after VQ-GAN encoding)
+diffusion_img_size: 32       # H, W after VQ-GAN encoding (128/4)
+diffusion_depth_size: 32     # D after VQ-GAN encoding (128/4)
+diffusion_num_channels: 64   # VQ-GAN embedding_dim
+dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
+
+# Training configuration
+batch_size: 2   # Per GPU (effective = 8 with 4 GPUs)
+num_workers: 4
+gpus: 4
+gradient_checkpointing: true  # Enable to reduce memory usage
+
+# Output directory
+results_folder: ./checkpoints/ddpm_4gpu_patches/
+results_folder_postfix: ''
+load_milestone: false
+
+# Conditioning
+cond_dim: 512  # X-ray feature dimension (MedCLIP output)
+classifier_free_guidance: false  # Disabled to avoid dimension mismatch with labels
+medclip: true  # Use MedCLIP for X-ray encoding
+
+# Training hyperparameters
+train_lr: 1e-4
+timesteps: 1000  # Diffusion steps
+sampling_timesteps: 250  # DDIM sampling (faster)
+max_epochs: 30  # Total training epochs
+train_num_steps: 100000  # Fallback for step-based training
+gradient_accumulate_every: 1  # No accumulation needed with 4 GPUs
+ema_decay: 0.995
+amp: true  # Mixed precision
+max_grad_norm: 1.0
+
+# Model architecture
+denoising_fn: Unet3D
+objective: pred_x0
+
+# Loss weights
+loss_type: l1_lpips
+l1_weight: 1.0
+perceptual_weight: 0.01
+discriminator_weight: 0.0  # Can enable after warmup
+classification_weight: 0.0
+
+# LoRA fine-tuning
+lora: true
+lora_first: false
+
+# Sampling
+save_and_sample_every: 1000
+num_sample_rows: 1
+
+# Dataset normalization (CTPA statistics)
+name_dataset: CTPA
+dataset_min_value: -12.911299
+dataset_max_value: 9.596558
+
+# Logging
+logger: tensorboard
+
+# Distributed settings
+find_unused_parameters: false
+sync_batchnorm: true
