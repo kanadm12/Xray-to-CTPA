@@ -161,12 +161,12 @@ def main_wrapper():
         callbacks = [
             ModelCheckpoint(
                 dirpath=cfg.model.results_folder,
-                filename='ddpm-step{step:06d}-loss{val_loss:.4f}',
-                monitor='val_loss',
+                filename='ddpm-epoch{epoch:02d}-loss{val/loss:.4f}',
+                monitor='val/loss',
                 mode='min',
                 save_top_k=3,
                 save_last=True,
-                every_n_train_steps=cfg.model.save_and_sample_every
+                every_n_epochs=1
             ),
             LearningRateMonitor(logging_interval='step')
         ]
