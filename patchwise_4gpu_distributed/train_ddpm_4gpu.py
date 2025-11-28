@@ -178,6 +178,13 @@ def main_wrapper():
             static_graph=False,
         )
         
+        # Enable gradient checkpointing if specified
+        if cfg.model.get('gradient_checkpointing', False):
+            if hasattr(model, 'gradient_checkpointing_enable'):
+                model.gradient_checkpointing_enable()
+            if local_rank == 0:
+                print("Gradient checkpointing enabled to reduce memory usage")
+        
         # Create trainer
         trainer = pl.Trainer(
             accelerator='gpu',

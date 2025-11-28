@@ -16,6 +16,7 @@ dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
 batch_size: 1   # Per GPU (effective = 4)
 num_workers: 4
 gpus: 4
+gradient_checkpointing: true  # Enable to reduce memory usage
 
 # Output directory
 results_folder: ./checkpoints/ddpm_4gpu/
