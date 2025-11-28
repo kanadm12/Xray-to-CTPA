@@ -2,7 +2,7 @@ name: DDPM_4GPU
 seed: 1234
 
 # VQ-GAN checkpoint (REQUIRED - from trained VQ-GAN)
-vqgan_ckpt: ./outputs/vqgan_patches_4gpu_disc/checkpoints/last.ckpt
+vqgan_ckpt: ./outputs/vqgan_patches_4gpu/checkpoints/last.ckpt
 vae_ckpt: null
 
 # Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])

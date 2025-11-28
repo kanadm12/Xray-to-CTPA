@@ -39,61 +39,28 @@ def get_dataloaders(cfg):
     
     if local_rank == 0:
         print(f"Loading paired X-ray → CTPA dataset...")
-        print(f"X-ray dir: {cfg.dataset.xray_dir}")
         print(f"CTPA dir: {cfg.dataset.ctpa_dir}")
+        print(f"X-ray pattern: {cfg.dataset.get('xray_pattern', '*_pa_drr.png')}")
     
-    # Get all patient folders
-    ctpa_root = cfg.dataset.ctpa_dir
-    patient_folders = sorted([
-        os.path.join(ctpa_root, d) 
-        for d in os.listdir(ctpa_root) 
-        if os.path.isdir(os.path.join(ctpa_root, d))
-    ])
-    
-    # Limit dataset if specified
-    max_patients = cfg.dataset.get('max_patients', None)
-    if max_patients is not None and max_patients > 0:
-        patient_folders = patient_folders[:max_patients]
-    
-    # Collect paired X-ray and CTPA files
-    paired_files = []
-    for patient_folder in patient_folders:
-        # Assuming X-ray files have matching names in xray_dir
-        patient_id = os.path.basename(patient_folder)
-        xray_path = os.path.join(cfg.dataset.xray_dir, f"{patient_id}_xray.nii.gz")
-        
-        # Find CTPA file in patient folder
-        for root, dirs, files in os.walk(patient_folder):
-            for f in files:
-                if f.endswith('.nii.gz') and 'swapped' not in f.lower():
-                    ctpa_path = os.path.join(root, f)
-                    if os.path.exists(xray_path):
-                        paired_files.append((xray_path, ctpa_path))
-                    break
-    
-    # Split train/val
-    split_idx = int(len(paired_files) * cfg.dataset.train_split)
-    train_pairs = paired_files[:split_idx]
-    val_pairs = paired_files[split_idx:]
-    
-    if local_rank == 0:
-        print(f"Total paired files: {len(paired_files)}")
-        print(f"Train pairs: {len(train_pairs)}")
-        print(f"Val pairs: {len(val_pairs)}")
-    
-    # Create datasets
+    # Create datasets using our new implementation
     train_dataset = XrayCTPADataset(
-        paired_files=train_pairs,
-        patch_size=tuple(cfg.dataset.patch_size),
-        vqgan_checkpoint=cfg.model.vqgan_ckpt,
-        normalize=True
+        ctpa_dir=cfg.dataset.ctpa_dir,
+        xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
+        split='train',
+        train_split=cfg.dataset.get('train_split', 0.8),
+        max_patients=cfg.dataset.get('max_patients', None),
+        use_latent=cfg.dataset.get('use_latent', True),
+        normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
     val_dataset = XrayCTPADataset(
-        paired_files=val_pairs,
-        patch_size=tuple(cfg.dataset.patch_size),
-        vqgan_checkpoint=cfg.model.vqgan_ckpt,
-        normalize=True
+        ctpa_dir=cfg.dataset.ctpa_dir,
+        xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
+        split='val',
+        train_split=cfg.dataset.get('train_split', 0.8),
+        max_patients=cfg.dataset.get('max_patients', None),
+        use_latent=cfg.dataset.get('use_latent', True),
+        normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
     # Create dataloaders
@@ -119,19 +86,24 @@ def get_dataloaders(cfg):
     return train_loader, val_loader
 
 
-@hydra.main(config_path="config", config_name="base_cfg_ddpm", version_base=None)
-def main(cfg: DictConfig):
-    """
-    Main training function for 4-GPU DDPM training.
-    """
-    local_rank = int(os.environ.get('LOCAL_RANK', 0))
+def main_wrapper():
+    """Wrapper to set absolute config path for Hydra."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_dir, "config")
     
-    if local_rank == 0:
-        print("=" * 80)
-        print("DDPM TRAINING (4-GPU DDP) - X-ray → CTPA Generation")
-        print("=" * 80)
-        print(f"Configuration:\n{OmegaConf.to_yaml(cfg)}")
-        print("=" * 80)
+    @hydra.main(config_path=config_path, config_name="base_cfg_ddpm", version_base=None)
+    def main(cfg: DictConfig):
+        """
+        Main training function for 4-GPU DDPM training.
+        """
+        local_rank = int(os.environ.get('LOCAL_RANK', 0))
+        
+        if local_rank == 0:
+            print("=" * 80)
+            print("DDPM TRAINING (4-GPU DDP) - X-ray → CTPA Generation")
+            print("=" * 80)
+            print(f"Configuration:\n{OmegaConf.to_yaml(cfg)}")
+            print("=" * 80)
     
     # Set seed
     pl.seed_everything(cfg.model.seed)
@@ -237,5 +209,8 @@ def main(cfg: DictConfig):
         print("=" * 80)
 
 
+    return main
+    
 if __name__ == "__main__":
-    main()
+    main_fn = main_wrapper()
+    main_fn()

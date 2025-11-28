@@ -2,9 +2,9 @@ name: XRAY_CTPA
 root_dir: /workspace/Xray-to-CTPA/datasets/
 image_channels: 1
 
-# For DDPM: Use paired X-ray and CTPA data
-xray_dir: /workspace/Xray-to-CTPA/xray_data/  # X-ray images (condition)
+# For DDPM: Use paired X-ray and CTPA data (co-located)
 ctpa_dir: /workspace/Xray-to-CTPA/datasets/   # CTPA volumes (target)
+xray_pattern: '*_pa_drr.png'  # X-ray PNG pattern in same folders
 
 # Dataset limiting
 max_patients: null  # Use all data
@@ -17,7 +17,7 @@ stride: [128, 128, 128]
 train_split: 0.8
 
 # Data preprocessing
-normalize: true
+normalization: min_max  # 'min_max' or 'standard'
 augmentation: false
 
 # DDPM specific

@@ -156,7 +156,7 @@ def main(cfg: DictConfig):
     callbacks = [
         ModelCheckpoint(
             dirpath=cfg.model.default_root_dir + '/checkpoints',
-            filename='vqgan-patches-epoch{epoch:02d}-psnr{val_psnr:.2f}',  # Fixed: no slash
+            filename='vqgan-patches-epoch{epoch:02d}-psnr{val/psnr:.2f}',
             monitor='val/psnr',
             mode='max',
             save_top_k=3,
