@@ -34,8 +34,13 @@ else
 fi
 
 echo ""
-echo "Step 3: Testing dataset loading..."
-cd patchwise_4gpu_distributed
+echo "Step 3: Installing required dependencies..."
+pip install SimpleITK pillow > /dev/null 2>&1
+echo "✓ Dependencies installed"
+
+echo ""
+echo "Step 4: Testing dataset loading..."
+cd patchwise_4gpu_distributed || cd .
 python test_dataset.py
 
 if [ $? -ne 0 ]; then
