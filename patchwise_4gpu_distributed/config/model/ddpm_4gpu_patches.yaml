@@ -72,5 +72,5 @@ dataset_max_value: 9.596558
 logger: tensorboard
 
 # Distributed settings
-find_unused_parameters: false
+find_unused_parameters: true  # Required: discriminator/classifier not always used
 sync_batchnorm: true
