@@ -1122,6 +1122,11 @@ class GaussianDiffusion(pl.LightningModule):
                     ct = ((ct - emb_min) / emb_range) * 2.0 - 1.0
                 else:
                     ct = torch.zeros_like(ct)
+                
+                # Fix dimension order if needed: [B, C, H, W, D] -> [B, C, D, H, W]
+                if ct.dim() == 5 and ct.shape[2] > ct.shape[4]:
+                    # If height > depth, dims are likely [B, C, H, W, D], so permute to [B, C, D, H, W]
+                    ct = ct.permute(0, 1, 4, 2, 3)
 
         elif isinstance(self.vae, AutoencoderKL):
             # normalize to -1 and 1
