@@ -812,19 +812,23 @@ class GaussianDiffusion(nn.Module):
         self.text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
         self.tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 
-        #Load classification model
-        self.classifier = latent_network.LatentNetwork(
-            num_classes=1,
-            num_channels = 4,
-            sample_size=32,
-            sample_duration=64)
+        #Load classification model (only if classification_weight > 0)
+        if self.classification_weight > 0:
+            self.classifier = latent_network.LatentNetwork(
+                num_classes=1,
+                num_channels = 4,
+                sample_size=32,
+                sample_duration=64)
 
-        self.classifier = self.classifier.cuda()
-        classifier_path = "./pretrained_models/classification_model_256.pth.tar"
-        pretrained = torch.load(classifier_path, weights_only=False)
+            self.classifier = self.classifier.cuda()
+            classifier_path = "./pretrained_models/classification_model_256.pth.tar"
+            pretrained = torch.load(classifier_path, weights_only=False)
 
-        self.classifier.load_state_dict(pretrained, strict=False)
-        self.pos_weight = torch.cuda.FloatTensor([POS_WEIGHT]).cuda()
+            self.classifier.load_state_dict(pretrained, strict=False)
+            self.pos_weight = torch.cuda.FloatTensor([POS_WEIGHT]).cuda()
+        else:
+            self.classifier = None
+            self.pos_weight = None
 
     def q_mean_variance(self, x_start, t):
         mean = extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
