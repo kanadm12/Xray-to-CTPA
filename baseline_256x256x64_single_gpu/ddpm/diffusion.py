@@ -1115,9 +1115,13 @@ class GaussianDiffusion(pl.LightningModule):
                 ct = self.vqgan.encode(
                     ct, quantize=False, include_embeddings=True)
                 # normalize to -1 and 1
-                ct = ((ct - self.vqgan.codebook.embeddings.min()) /
-                     (self.vqgan.codebook.embeddings.max() -
-                      self.vqgan.codebook.embeddings.min())) * 2.0 - 1.0
+                emb_min = self.vqgan.codebook.embeddings.min()
+                emb_max = self.vqgan.codebook.embeddings.max()
+                emb_range = emb_max - emb_min
+                if emb_range > 1e-6:  # Avoid division by zero
+                    ct = ((ct - emb_min) / emb_range) * 2.0 - 1.0
+                else:
+                    ct = torch.zeros_like(ct)
 
         elif isinstance(self.vae, AutoencoderKL):
             # normalize to -1 and 1
@@ -1139,13 +1143,26 @@ class GaussianDiffusion(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         """PyTorch Lightning training step."""
         loss = self.forward(batch)
-        self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
+        
+        # Check for NaN loss and skip step if found
+        if torch.isnan(loss) or torch.isinf(loss):
+            print(f"WARNING: NaN/Inf loss detected at step {batch_idx}, skipping...")
+            # Return a dummy loss to avoid breaking training
+            return torch.tensor(0.0, requires_grad=True, device=loss.device)
+        
+        self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=batch['ct'].shape[0])
         return loss
 
     def validation_step(self, batch, batch_idx):
         """PyTorch Lightning validation step."""
         loss = self.forward(batch)
-        self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        
+        # Check for NaN loss
+        if torch.isnan(loss) or torch.isinf(loss):
+            print(f"WARNING: NaN/Inf loss detected in validation at step {batch_idx}")
+            return torch.tensor(0.0, requires_grad=True, device=loss.device)
+        
+        self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=batch['ct'].shape[0])
         return loss
 
     def configure_optimizers(self):

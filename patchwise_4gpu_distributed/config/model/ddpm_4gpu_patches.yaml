@@ -49,9 +49,9 @@ denoising_fn: Unet3D
 objective: pred_x0
 
 # Loss weights
-loss_type: l1_lpips
+loss_type: l1  # Start with simple L1 loss to avoid NaN from perceptual
 l1_weight: 1.0
-perceptual_weight: 0.01
+perceptual_weight: 0.0  # Disabled initially, can enable later
 discriminator_weight: 0.0  # Can enable after warmup
 classification_weight: 0.0
 
