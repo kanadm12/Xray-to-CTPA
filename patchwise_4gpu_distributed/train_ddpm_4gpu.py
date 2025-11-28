@@ -19,12 +19,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 baseline_dir = os.path.join(parent_dir, 'baseline_256x256x64_single_gpu')
 
-sys.path.insert(0, current_dir)
 sys.path.insert(0, baseline_dir)
+sys.path.insert(0, current_dir)
 sys.path.insert(0, parent_dir)
 
-from ddpm.unet import Unet3D
-from ddpm.diffusion import GaussianDiffusion
+from ddpm.diffusion import Unet3D, GaussianDiffusion
 from dataset.xray_ctpa_dataset import XrayCTPADataset
 from torch.utils.data import DataLoader
 
