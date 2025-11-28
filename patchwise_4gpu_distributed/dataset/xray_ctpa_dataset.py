@@ -122,6 +122,19 @@ class XrayCTPADataset(Dataset):
         image = sitk.ReadImage(ctpa_path)
         ctpa = sitk.GetArrayFromImage(image).astype(np.float32)
         
+        # Pad or crop to target depth of 604 (will become 151 after VQ-GAN encoding with downsample=4)
+        target_depth = 604
+        current_depth = ctpa.shape[0]
+        
+        if current_depth < target_depth:
+            # Pad to target depth (pad at the end)
+            pad_amount = target_depth - current_depth
+            ctpa = np.pad(ctpa, ((0, pad_amount), (0, 0), (0, 0)), mode='constant', constant_values=ctpa.min())
+        elif current_depth > target_depth:
+            # Crop to target depth (center crop)
+            start = (current_depth - target_depth) // 2
+            ctpa = ctpa[start:start + target_depth]
+        
         # Normalize
         if self.normalization == 'min_max':
             min_val = ctpa.min()
