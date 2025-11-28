@@ -104,110 +104,109 @@ def main_wrapper():
             print("=" * 80)
             print(f"Configuration:\n{OmegaConf.to_yaml(cfg)}")
             print("=" * 80)
-    
-    # Set seed
-    pl.seed_everything(cfg.model.seed)
-    
-    # Check VQ-GAN checkpoint exists
-    if not os.path.exists(cfg.model.vqgan_ckpt):
-        raise FileNotFoundError(
-            f"VQ-GAN checkpoint not found: {cfg.model.vqgan_ckpt}\n"
-            "Train VQ-GAN first using launch_4gpu_vqgan_disc.sh"
+        
+        # Set seed
+        pl.seed_everything(cfg.model.seed)
+        
+        # Check VQ-GAN checkpoint exists
+        if not os.path.exists(cfg.model.vqgan_ckpt):
+            raise FileNotFoundError(
+                f"VQ-GAN checkpoint not found: {cfg.model.vqgan_ckpt}\n"
+                "Train VQ-GAN first using launch_4gpu_vqgan_disc.sh"
+            )
+        
+        # Create dataloaders
+        train_loader, val_loader = get_dataloaders(cfg)
+        
+        # Create UNet model
+        if local_rank == 0:
+            print("Creating UNet3D model...")
+        
+        model = Unet3D(
+            dim=cfg.model.diffusion_img_size,
+            cond_dim=cfg.model.cond_dim,
+            dim_mults=cfg.model.dim_mults,
+            channels=cfg.model.diffusion_num_channels,
+            resnet_groups=8,
+            classifier_free_guidance=cfg.model.classifier_free_guidance,
+            medclip=cfg.model.medclip
         )
-    
-    # Create dataloaders
-    train_loader, val_loader = get_dataloaders(cfg)
-    
-    # Create UNet model
-    if local_rank == 0:
-        print("Creating UNet3D model...")
-    
-    model = Unet3D(
-        dim=cfg.model.diffusion_img_size,
-        cond_dim=cfg.model.cond_dim,
-        dim_mults=cfg.model.dim_mults,
-        channels=cfg.model.diffusion_num_channels,
-        resnet_groups=8,
-        classifier_free_guidance=cfg.model.classifier_free_guidance,
-        medclip=cfg.model.medclip
-    )
-    
-    # Create Gaussian Diffusion wrapper
-    if local_rank == 0:
-        print("Creating Gaussian Diffusion...")
-    
-    diffusion = GaussianDiffusion(
-        model,
-        vqgan_ckpt=cfg.model.vqgan_ckpt,
-        vae_ckpt=cfg.model.vae_ckpt,
-        image_size=cfg.model.diffusion_img_size,
-        num_frames=cfg.model.diffusion_depth_size,
-        channels=cfg.model.diffusion_num_channels,
-        timesteps=cfg.model.timesteps,
-        img_cond=True,  # Condition on X-ray
-        loss_type=cfg.model.loss_type,
-        l1_weight=cfg.model.l1_weight,
-        perceptual_weight=cfg.model.perceptual_weight,
-        discriminator_weight=cfg.model.discriminator_weight,
-        classification_weight=cfg.model.classification_weight,
-        classifier_free_guidance=cfg.model.classifier_free_guidance,
-        medclip=cfg.model.medclip,
-        name_dataset=cfg.model.name_dataset,
-        dataset_min_value=cfg.model.dataset_min_value,
-        dataset_max_value=cfg.model.dataset_max_value,
-    )
-    
-    # Setup callbacks
-    callbacks = [
-        ModelCheckpoint(
-            dirpath=cfg.model.results_folder,
-            filename='ddpm-step{step:06d}-loss{val_loss:.4f}',
-            monitor='val_loss',
-            mode='min',
-            save_top_k=3,
-            save_last=True,
-            every_n_train_steps=cfg.model.save_and_sample_every
-        ),
-        LearningRateMonitor(logging_interval='step')
-    ]
-    
-    # DDP Strategy
-    ddp_strategy = DDPStrategy(
-        find_unused_parameters=cfg.model.get('find_unused_parameters', False),
-        gradient_as_bucket_view=True,
-        static_graph=False,
-    )
-    
-    # Create trainer
-    trainer = pl.Trainer(
-        accelerator='gpu',
-        devices=4,
-        strategy=ddp_strategy,
-        max_steps=cfg.model.train_num_steps,
-        precision=16 if cfg.model.amp else 32,
-        accumulate_grad_batches=cfg.model.gradient_accumulate_every,
-        callbacks=callbacks,
-        log_every_n_steps=50,
-        val_check_interval=cfg.model.save_and_sample_every,
-        enable_progress_bar=True,
-        enable_model_summary=local_rank == 0,
-        gradient_clip_val=cfg.model.max_grad_norm,
-        sync_batchnorm=cfg.model.get('sync_batchnorm', True),
-    )
-    
-    # Train
-    if local_rank == 0:
-        print("\nStarting DDPM training...")
-        print(f"Training for {cfg.model.train_num_steps} steps")
-        print(f"Saving checkpoints every {cfg.model.save_and_sample_every} steps")
-    
-    trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader)
-    
-    if local_rank == 0:
-        print("\n" + "=" * 80)
-        print("DDPM TRAINING COMPLETE!")
-        print("=" * 80)
-
+        
+        # Create Gaussian Diffusion wrapper
+        if local_rank == 0:
+            print("Creating Gaussian Diffusion...")
+        
+        diffusion = GaussianDiffusion(
+            model,
+            vqgan_ckpt=cfg.model.vqgan_ckpt,
+            vae_ckpt=cfg.model.vae_ckpt,
+            image_size=cfg.model.diffusion_img_size,
+            num_frames=cfg.model.diffusion_depth_size,
+            channels=cfg.model.diffusion_num_channels,
+            timesteps=cfg.model.timesteps,
+            img_cond=True,  # Condition on X-ray
+            loss_type=cfg.model.loss_type,
+            l1_weight=cfg.model.l1_weight,
+            perceptual_weight=cfg.model.perceptual_weight,
+            discriminator_weight=cfg.model.discriminator_weight,
+            classification_weight=cfg.model.classification_weight,
+            classifier_free_guidance=cfg.model.classifier_free_guidance,
+            medclip=cfg.model.medclip,
+            name_dataset=cfg.model.name_dataset,
+            dataset_min_value=cfg.model.dataset_min_value,
+            dataset_max_value=cfg.model.dataset_max_value,
+        )
+        
+        # Setup callbacks
+        callbacks = [
+            ModelCheckpoint(
+                dirpath=cfg.model.results_folder,
+                filename='ddpm-step{step:06d}-loss{val_loss:.4f}',
+                monitor='val_loss',
+                mode='min',
+                save_top_k=3,
+                save_last=True,
+                every_n_train_steps=cfg.model.save_and_sample_every
+            ),
+            LearningRateMonitor(logging_interval='step')
+        ]
+        
+        # DDP Strategy
+        ddp_strategy = DDPStrategy(
+            find_unused_parameters=cfg.model.get('find_unused_parameters', False),
+            gradient_as_bucket_view=True,
+            static_graph=False,
+        )
+        
+        # Create trainer
+        trainer = pl.Trainer(
+            accelerator='gpu',
+            devices=4,
+            strategy=ddp_strategy,
+            max_steps=cfg.model.train_num_steps,
+            precision=16 if cfg.model.amp else 32,
+            accumulate_grad_batches=cfg.model.gradient_accumulate_every,
+            callbacks=callbacks,
+            log_every_n_steps=50,
+            val_check_interval=cfg.model.save_and_sample_every,
+            enable_progress_bar=True,
+            enable_model_summary=local_rank == 0,
+            gradient_clip_val=cfg.model.max_grad_norm,
+            sync_batchnorm=cfg.model.get('sync_batchnorm', True),
+        )
+        
+        # Train
+        if local_rank == 0:
+            print("\nStarting DDPM training...")
+            print(f"Training for {cfg.model.train_num_steps} steps")
+            print(f"Saving checkpoints every {cfg.model.save_and_sample_every} steps")
+        
+        trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader)
+        
+        if local_rank == 0:
+            print("\n" + "=" * 80)
+            print("DDPM TRAINING COMPLETE!")
+            print("=" * 80)
 
     return main
     
