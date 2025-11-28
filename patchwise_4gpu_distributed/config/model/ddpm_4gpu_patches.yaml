@@ -7,18 +7,18 @@ vae_ckpt: null
 
 # Patchwise settings
 use_patches: true
-patch_size: [128, 128, 128]  # D, H, W for CTPA patches
-stride: [96, 96, 96]  # 25% overlap between patches
+patch_size: [256, 256, 128]  # D, H, W for CTPA patches (increased from 128³)
+stride: [192, 192, 96]  # 25% overlap between patches
 
 # Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])
-# Patch: 128×128×128 → Latent: 32×32×32 (after VQ-GAN encoding)
-diffusion_img_size: 32       # H, W after VQ-GAN encoding (128/4)
+# Patch: 256×256×128 → Latent: 64×64×32 (after VQ-GAN encoding)
+diffusion_img_size: 64       # H, W after VQ-GAN encoding (256/4)
 diffusion_depth_size: 32     # D after VQ-GAN encoding (128/4)
 diffusion_num_channels: 64   # VQ-GAN embedding_dim
 dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
 
 # Training configuration
-batch_size: 2   # Per GPU (effective = 8 with 4 GPUs)
+batch_size: 4   # Per GPU (effective = 16 with 4 GPUs, increased from 2)
 num_workers: 4
 gpus: 4
 gradient_checkpointing: true  # Enable to reduce memory usage
