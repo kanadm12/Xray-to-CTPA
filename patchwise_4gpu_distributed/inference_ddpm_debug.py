@@ -138,13 +138,23 @@ def decode_latent(latent, vqgan):
     print(f"VQ-GAN input shape: {latent.shape}")
     
     try:
-        decoded = vqgan.decode(latent, quantize=True)
+        # Don't quantize - we have continuous latent features, not discrete codes
+        decoded = vqgan.decode(latent, quantize=False)
         print(f"Decoded shape: {decoded.shape}")
         return decoded
     except Exception as e:
         print(f"ERROR during decoding: {e}")
         print(f"Latent shape was: {latent.shape}")
-        return None
+        print("\nTrying direct decoder call...")
+        try:
+            # Skip the embedding lookup, go straight to decoder
+            h = vqgan.post_vq_conv(latent)
+            decoded = vqgan.decoder(h)
+            print(f"Direct decode worked! Shape: {decoded.shape}")
+            return decoded
+        except Exception as e2:
+            print(f"Direct decode also failed: {e2}")
+            return None
 
 
 def save_volume(volume, output_path):
