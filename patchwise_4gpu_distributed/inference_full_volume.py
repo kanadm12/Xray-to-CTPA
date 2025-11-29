@@ -215,8 +215,9 @@ def generate_full_volume(xray, diffusion, vqgan,
     sh, sw, sd = stride
     
     # Actual generated patch dimensions are [D, H, W] = [128, 256, 256]
-    # So we need to swap: patch generates (pd, ph, pw) but we treat as (ph, pw, pd) in positions
-    actual_patch_shape = (pd, ph, pw)  # (128, 256, 256) - what comes out of model
+    # User specifies patch_size as (H, W, D) = (256, 256, 128)
+    # But generated patches are (pd, ph, pw) = (128, 256, 256)
+    actual_pd, actual_ph, actual_pw = pd, ph, pw  # (128, 256, 256)
     
     # Pre-compute X-ray conditioning (same for all patches)
     print("Encoding X-ray...")
@@ -225,11 +226,13 @@ def generate_full_volume(xray, diffusion, vqgan,
     else:
         xray_cond = diffusion.xray_encoder(xray)[0]
     
-    # Calculate patch positions
+    # Calculate patch positions in (D, H, W) coordinates
+    # Output volume is (H, W, D) but we store as (D, H, W) numpy array
+    # Generated patches are (pd=128, ph=256, pw=256)
     patch_positions = []
-    h_starts = list(range(0, H - ph + 1, sh)) + ([H - ph] if H > ph else [])
-    w_starts = list(range(0, W - pw + 1, sw)) + ([W - pw] if W > pw else [])
-    d_starts = list(range(0, D - pd + 1, sd)) + ([D - pd] if D > pd else [])
+    d_starts = list(range(0, D - actual_pd + 1, sd)) + ([D - actual_pd] if D > actual_pd else [])
+    h_starts = list(range(0, H - actual_ph + 1, sh)) + ([H - actual_ph] if H > actual_ph else [])
+    w_starts = list(range(0, W - actual_pw + 1, sw)) + ([W - actual_pw] if W > actual_pw else [])
     
     for d in d_starts:
         for h in h_starts:
@@ -251,12 +254,12 @@ def generate_full_volume(xray, diffusion, vqgan,
     
     print("Stitching patches into full volume...")
     # Patches come out as [1, 1, D, H, W] = [1, 1, 128, 256, 256]
-    # Convert output_shape to (D, H, W) for stitching
+    # Stitch into volume with shape (D, H, W)
     volume = stitch_patches_with_overlap(
         patches, 
         patch_positions,
         output_shape=(D, H, W),
-        patch_size=actual_patch_shape,  # Use actual generated shape (128, 256, 256)
+        patch_size=(actual_pd, actual_ph, actual_pw),  # (128, 256, 256)
         stride=(sd, sh, sw)
     )
     
