@@ -62,11 +62,22 @@ class XrayCTPADataset(Dataset):
         for patient_folder in patient_folders:
             patient_id = os.path.basename(patient_folder)
             
-            # Find CTPA .nii.gz file (exclude *_swapped.nii.gz)
-            ctpa_files = [
+            # Find CTPA files: both .nii and .nii.gz (exclude *swapped*)
+            ctpa_files = []
+            
+            # Check for .nii.gz files (exclude swapped)
+            nii_gz_files = [
                 f for f in glob(os.path.join(patient_folder, '*.nii.gz'))
                 if 'swapped' not in os.path.basename(f).lower()
             ]
+            ctpa_files.extend(nii_gz_files)
+            
+            # Check for .nii files (exclude swapped)
+            nii_files = [
+                f for f in glob(os.path.join(patient_folder, '*.nii'))
+                if 'swapped' not in os.path.basename(f).lower()
+            ]
+            ctpa_files.extend(nii_files)
             
             if not ctpa_files:
                 continue
