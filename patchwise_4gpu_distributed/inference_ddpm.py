@@ -76,7 +76,10 @@ def load_models(ddpm_ckpt_path, vqgan_ckpt_path, device='cuda'):
         timesteps=1000,
         loss_type='l1',
         img_cond=True,
-        medclip=True
+        medclip=True,
+        classification_weight=0.0,  # Disable classifier to avoid loading pretrained model
+        discriminator_weight=0.0,
+        perceptual_weight=0.0
     )
     
     # Load state dict
