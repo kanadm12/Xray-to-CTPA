@@ -198,26 +198,29 @@ def generate_full_volume(xray, diffusion, vqgan,
     """
     Generate full CTPA volume by generating and stitching multiple patches.
     
+    IMPORTANT: Generated patches are [1, 1, D, H, W] = [1, 1, 128, 256, 256]
+    
     Args:
         xray: X-ray image tensor
         diffusion: DDPM model
         vqgan: VQ-GAN model
-        output_shape: (H, W, D) of final volume
-        patch_size: (ph, pw, pd) size of each patch - NOTE: actual generated patch is (pd, ph, pw) = (128, 256, 256)
-        stride: (sh, sw, sd) stride between patches
+        output_shape: (H, W, D) of final volume in user coordinates
+        patch_size: (ph, pw, pd) in user coordinates - will be converted
+        stride: (sh, sw, sd) in user coordinates - will be converted
         device: cuda or cpu
     
     Returns:
         Full volume [1, 1, D, H, W]
     """
-    H, W, D = output_shape
-    ph, pw, pd = patch_size  # User specifies H, W, D
-    sh, sw, sd = stride
+    H_out, W_out, D_out = output_shape  # User-specified output (H, W, D)
+    ph_user, pw_user, pd_user = patch_size  # User-specified patch (H, W, D)
+    sh_user, sw_user, sd_user = stride  # User-specified stride (H, W, D)
     
-    # Actual generated patch dimensions are [D, H, W] = [128, 256, 256]
-    # User specifies patch_size as (H, W, D) = (256, 256, 128)
-    # But generated patches are (pd, ph, pw) = (128, 256, 256)
-    actual_pd, actual_ph, actual_pw = pd, ph, pw  # (128, 256, 256)
+    # Generated patches are ALWAYS [1, 1, D, H, W] = [1, 1, 128, 256, 256]
+    # So actual patch shape in (D, H, W) order is:
+    pd_actual = 128  # depth
+    ph_actual = 256  # height
+    pw_actual = 256  # width
     
     # Pre-compute X-ray conditioning (same for all patches)
     print("Encoding X-ray...")
@@ -226,13 +229,20 @@ def generate_full_volume(xray, diffusion, vqgan,
     else:
         xray_cond = diffusion.xray_encoder(xray)[0]
     
-    # Calculate patch positions in (D, H, W) coordinates
-    # Output volume is (H, W, D) but we store as (D, H, W) numpy array
-    # Generated patches are (pd=128, ph=256, pw=256)
+    # Calculate patch positions in (D, H, W) storage order
+    # We need to cover output volume of (H_out, W_out, D_out) stored as (D_out, H_out, W_out)
     patch_positions = []
-    d_starts = list(range(0, D - actual_pd + 1, sd)) + ([D - actual_pd] if D > actual_pd else [])
-    h_starts = list(range(0, H - actual_ph + 1, sh)) + ([H - actual_ph] if H > actual_ph else [])
-    w_starts = list(range(0, W - actual_pw + 1, sw)) + ([W - actual_pw] if W > actual_pw else [])
+    d_starts = list(range(0, D_out - pd_actual + 1, sd_user))
+    if D_out > pd_actual and d_starts[-1] < D_out - pd_actual:
+        d_starts.append(D_out - pd_actual)
+    
+    h_starts = list(range(0, H_out - ph_actual + 1, sh_user))
+    if H_out > ph_actual and h_starts[-1] < H_out - ph_actual:
+        h_starts.append(H_out - ph_actual)
+    
+    w_starts = list(range(0, W_out - pw_actual + 1, sw_user))
+    if W_out > pw_actual and w_starts[-1] < W_out - pw_actual:
+        w_starts.append(W_out - pw_actual)
     
     for d in d_starts:
         for h in h_starts:
@@ -240,7 +250,8 @@ def generate_full_volume(xray, diffusion, vqgan,
                 patch_positions.append((d, h, w))
     
     num_patches = len(patch_positions)
-    print(f"Generating {num_patches} patches to cover {H}×{W}×{D} volume...")
+    print(f"Generating {num_patches} patches to cover {H_out}×{W_out}×{D_out} volume...")
+    print(f"Each patch: {pd_actual}×{ph_actual}×{pw_actual} (D×H×W)")
     
     # Generate all patches
     patches = []
@@ -253,14 +264,14 @@ def generate_full_volume(xray, diffusion, vqgan,
             torch.cuda.empty_cache()
     
     print("Stitching patches into full volume...")
-    # Patches come out as [1, 1, D, H, W] = [1, 1, 128, 256, 256]
-    # Stitch into volume with shape (D, H, W)
+    # Patches are [1, 1, 128, 256, 256] in (D, H, W) order
+    # Output volume shape in storage order (D, H, W)
     volume = stitch_patches_with_overlap(
         patches, 
         patch_positions,
-        output_shape=(D, H, W),
-        patch_size=(actual_pd, actual_ph, actual_pw),  # (128, 256, 256)
-        stride=(sd, sh, sw)
+        output_shape=(D_out, H_out, W_out),  # Storage order (D, H, W)
+        patch_size=(pd_actual, ph_actual, pw_actual),  # (128, 256, 256)
+        stride=(sd_user, sh_user, sw_user)  # (D, H, W) order
     )
     
     # Convert back to torch tensor [1, 1, D, H, W]
