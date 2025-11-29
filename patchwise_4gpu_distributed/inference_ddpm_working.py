@@ -100,21 +100,25 @@ def generate_ctpa_patch(xray, diffusion, vqgan, device='cuda'):
     
     # Run denoising loop to get latent
     print("Running diffusion sampling...")
+    print(f"Target shape: ({batch_size}, {channels}, {num_frames}, {image_size}, {image_size})")
     latent = diffusion.p_sample_loop(
         (batch_size, channels, num_frames, image_size, image_size),
         cond=cond,
         cond_scale=1.0
     )
     
-    print(f"Generated latent shape: {latent.shape}")
+    print(f"Generated latent shape: {latent.shape}, range: [{latent.min():.4f}, {latent.max():.4f}]")
     
-    # Denormalize latent
+    # Denormalize latent from [-1, 1] back to codebook embedding range
     emb_min = vqgan.codebook.embeddings.min()
     emb_max = vqgan.codebook.embeddings.max()
     emb_range = emb_max - emb_min
     
     if emb_range > 1e-6:
         latent = ((latent + 1.0) / 2.0) * emb_range + emb_min
+    
+    print(f"Denormalized latent range: [{latent.min():.4f}, {latent.max():.4f}]")
+    print(f"Codebook embedding range: [{emb_min:.4f}, {emb_max:.4f}]")
     
     # Fix dimension order: [B, C, D, H, W] -> [B, C, H, W, D]
     if latent.shape[2] < latent.shape[3]:
@@ -124,9 +128,10 @@ def generate_ctpa_patch(xray, diffusion, vqgan, device='cuda'):
     
     # Decode directly (bypass quantization)
     h = vqgan.post_vq_conv(latent)
-    patch = vqgan.decoder(h)
+    print(f"After post_vq_conv: shape={h.shape}, range=[{h.min():.4f}, {h.max():.4f}]")
     
-    print(f"Generated patch shape: {patch.shape}")
+    patch = vqgan.decoder(h)
+    print(f"Generated patch shape: {patch.shape}, range=[{patch.min():.4f}, {patch.max():.4f}]")
     return patch
 
 
