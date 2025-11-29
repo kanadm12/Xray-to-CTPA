@@ -203,7 +203,7 @@ def generate_full_volume(xray, diffusion, vqgan,
         diffusion: DDPM model
         vqgan: VQ-GAN model
         output_shape: (H, W, D) of final volume
-        patch_size: (ph, pw, pd) size of each patch
+        patch_size: (ph, pw, pd) size of each patch - NOTE: actual generated patch is (pd, ph, pw) = (128, 256, 256)
         stride: (sh, sw, sd) stride between patches
         device: cuda or cpu
     
@@ -211,8 +211,12 @@ def generate_full_volume(xray, diffusion, vqgan,
         Full volume [1, 1, D, H, W]
     """
     H, W, D = output_shape
-    ph, pw, pd = patch_size
+    ph, pw, pd = patch_size  # User specifies H, W, D
     sh, sw, sd = stride
+    
+    # Actual generated patch dimensions are [D, H, W] = [128, 256, 256]
+    # So we need to swap: patch generates (pd, ph, pw) but we treat as (ph, pw, pd) in positions
+    actual_patch_shape = (pd, ph, pw)  # (128, 256, 256) - what comes out of model
     
     # Pre-compute X-ray conditioning (same for all patches)
     print("Encoding X-ray...")
@@ -246,12 +250,13 @@ def generate_full_volume(xray, diffusion, vqgan,
             torch.cuda.empty_cache()
     
     print("Stitching patches into full volume...")
+    # Patches come out as [1, 1, D, H, W] = [1, 1, 128, 256, 256]
     # Convert output_shape to (D, H, W) for stitching
     volume = stitch_patches_with_overlap(
         patches, 
         patch_positions,
         output_shape=(D, H, W),
-        patch_size=(pd, ph, pw),
+        patch_size=actual_patch_shape,  # Use actual generated shape (128, 256, 256)
         stride=(sd, sh, sw)
     )
     
