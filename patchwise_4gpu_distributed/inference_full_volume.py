@@ -228,11 +228,11 @@ def generate_full_volume(xray, diffusion, vqgan,
     ph_user, pw_user, pd_user = patch_size  # User-specified patch (H, W, D)
     sh_user, sw_user, sd_user = stride  # User-specified stride (H, W, D)
     
-    # Generated patches are ALWAYS [1, 1, D, H, W] = [1, 1, 128, 256, 256]
+    # Generated patches are ALWAYS [1, 1, D, H, W] = [1, 1, 256, 256, 128]
     # So actual patch shape in (D, H, W) order is:
-    pd_actual = 128  # depth
+    pd_actual = 256  # depth
     ph_actual = 256  # height
-    pw_actual = 256  # width
+    pw_actual = 128  # width
     
     # Pre-compute X-ray conditioning (same for all patches)
     print("Encoding X-ray...")
