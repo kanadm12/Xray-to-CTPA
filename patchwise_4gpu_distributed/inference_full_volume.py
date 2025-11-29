@@ -98,27 +98,37 @@ def generate_single_patch(xray, diffusion, vqgan, xray_cond=None, device='cuda')
     num_frames = diffusion.num_frames
     
     # Run denoising loop
+    print(f"Generating latent with shape: ({batch_size}, {channels}, {num_frames}, {image_size}, {image_size})")
     latent = diffusion.p_sample_loop(
         (batch_size, channels, num_frames, image_size, image_size),
         cond=xray_cond,
         cond_scale=1.0
     )
+    print(f"Generated latent shape: {latent.shape}, range: [{latent.min():.4f}, {latent.max():.4f}]")
     
-    # Denormalize latent
+    # Denormalize latent from [-1, 1] back to original range
+    # NOTE: Training normalizes pre_vq_conv output using codebook embedding range
     emb_min = vqgan.codebook.embeddings.min()
     emb_max = vqgan.codebook.embeddings.max()
     emb_range = emb_max - emb_min
     
     if emb_range > 1e-6:
+        # Reverse: ((x - emb_min) / emb_range) * 2 - 1 = latent
+        # So: x = ((latent + 1) / 2) * emb_range + emb_min
         latent = ((latent + 1.0) / 2.0) * emb_range + emb_min
+    
+    print(f"Denormalized latent range: {latent.min():.4f} to {latent.max():.4f}")
+    print(f"Codebook embedding range: {emb_min:.4f} to {emb_max:.4f}")
     
     # Fix dimension order: [B, C, D, H, W] -> [B, C, H, W, D]
     if latent.shape[2] < latent.shape[3]:
         latent = latent.permute(0, 1, 3, 4, 2)
     
-    # Decode directly
+    # Decode: latent is pre_vq_conv output, so apply post_vq_conv + decoder
     h = vqgan.post_vq_conv(latent)
+    print(f"After post_vq_conv: shape={h.shape}, range=[{h.min():.4f}, {h.max():.4f}]")
     patch = vqgan.decoder(h)
+    print(f"Decoded patch: shape={patch.shape}, range=[{patch.min():.4f}, {patch.max():.4f}]")
     
     return patch
 
