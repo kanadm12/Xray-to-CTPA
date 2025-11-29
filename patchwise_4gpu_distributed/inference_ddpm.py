@@ -99,7 +99,7 @@ def generate_ctpa(xray, diffusion, vqgan, num_samples=1, device='cuda'):
     Args:
         xray: X-ray tensor [1, 3, 224, 224]
         diffusion: GaussianDiffusion model
-        vqgan: VQ-GAN model for decoding
+        vqgan: VQ-GAN model (not used - diffusion.sample() handles decoding)
         num_samples: Number of samples to generate
         device: cuda or cpu
     
@@ -110,28 +110,14 @@ def generate_ctpa(xray, diffusion, vqgan, num_samples=1, device='cuda'):
     
     batch_size = xray.shape[0]
     
-    # Sample from DDPM (generates latent representation)
-    # This performs the denoising process
-    latent_samples = diffusion.sample(
+    # Sample from DDPM - this performs denoising and decoding in one step
+    # The diffusion.sample() method handles VQ-GAN decoding internally
+    ctpa_volumes = diffusion.sample(
         cond=xray,
-        batch_size=batch_size,
-        return_all_timesteps=False
+        batch_size=batch_size
     )
     
-    print(f"Generated latent shape: {latent_samples.shape}")
-    
-    # Decode latent to full CTPA volume using VQ-GAN
-    print("Decoding latent with VQ-GAN...")
-    
-    # Check if we need to permute dimensions back
-    # DDPM outputs [B, C, D, H, W], VQ-GAN decoder expects [B, C, H, W, D]
-    if latent_samples.shape[2] < latent_samples.shape[3]:
-        # Likely [B, C, D, H, W], permute to [B, C, H, W, D]
-        latent_samples = latent_samples.permute(0, 1, 3, 4, 2)
-    
-    ctpa_volumes = vqgan.decode(latent_samples)
-    
-    print(f"Decoded CTPA shape: {ctpa_volumes.shape}")
+    print(f"Generated CTPA shape: {ctpa_volumes.shape}")
     
     return ctpa_volumes
 
