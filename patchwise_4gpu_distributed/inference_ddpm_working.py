@@ -143,7 +143,16 @@ def save_as_nifti(volume, output_path):
         volume = volume.squeeze(0)
     
     vol_np = volume.cpu().numpy()
-    vol_np = vol_np.clip(0, 1)
+    
+    # Normalize to [0, 1] using min-max normalization instead of clipping
+    vmin, vmax = vol_np.min(), vol_np.max()
+    print(f"Volume range before normalization: [{vmin:.4f}, {vmax:.4f}]")
+    
+    if vmax > vmin:
+        vol_np = (vol_np - vmin) / (vmax - vmin)
+    else:
+        vol_np = np.zeros_like(vol_np)
+    
     vol_np = (vol_np * 255).astype(np.uint8)
     
     vol_sitk = sitk.GetImageFromArray(vol_np)
