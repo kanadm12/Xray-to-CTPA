@@ -55,7 +55,7 @@ def resample_to_target_depth(input_path, output_path, target_depth=604):
     return True
 
 
-def process_dataset(data_dir, target_depth=604, in_place=False):
+def process_dataset(data_dir, target_depth=604, in_place=False, only_nii=False):
     """
     Process all .nii/.nii.gz files in dataset directory.
     
@@ -63,6 +63,7 @@ def process_dataset(data_dir, target_depth=604, in_place=False):
         data_dir: Root directory containing patient folders
         target_depth: Target number of slices
         in_place: If True, replace original files. If False, create *_resampled.nii.gz
+        only_nii: If True, only process .nii files (skip .nii.gz)
     """
     # Find all patient folders
     patient_folders = sorted([
@@ -80,13 +81,14 @@ def process_dataset(data_dir, target_depth=604, in_place=False):
         # Find all .nii and .nii.gz files (exclude swapped and already resampled)
         nii_files = []
         
-        # .nii.gz files
-        nii_gz = [
-            f for f in glob(os.path.join(patient_folder, '*.nii.gz'))
-            if 'swapped' not in os.path.basename(f).lower()
-            and 'resampled' not in os.path.basename(f).lower()
-        ]
-        nii_files.extend(nii_gz)
+        if not only_nii:
+            # .nii.gz files
+            nii_gz = [
+                f for f in glob(os.path.join(patient_folder, '*.nii.gz'))
+                if 'swapped' not in os.path.basename(f).lower()
+                and 'resampled' not in os.path.basename(f).lower()
+            ]
+            nii_files.extend(nii_gz)
         
         # .nii files
         nii = [
@@ -140,6 +142,8 @@ def main():
                         help='Target depth (default 604)')
     parser.add_argument('--in_place', action='store_true',
                         help='Replace original files (default: create *_resampled.nii.gz)')
+    parser.add_argument('--only_nii', action='store_true',
+                        help='Only process .nii files (skip .nii.gz - useful for new data only)')
     
     args = parser.parse_args()
     
@@ -152,6 +156,7 @@ def main():
     print(f"Data directory: {args.data_dir}")
     print(f"Target depth: {args.target_depth}")
     print(f"Mode: {'IN-PLACE (will replace originals)' if args.in_place else 'SAFE (will create new files)'}")
+    print(f"Filter: {'Only .nii files' if args.only_nii else 'All .nii and .nii.gz files'}")
     print("="*60)
     
     if args.in_place:
@@ -160,7 +165,7 @@ def main():
             print("Aborted.")
             return
     
-    process_dataset(args.data_dir, args.target_depth, args.in_place)
+    process_dataset(args.data_dir, args.target_depth, args.in_place, args.only_nii)
 
 
 if __name__ == "__main__":
