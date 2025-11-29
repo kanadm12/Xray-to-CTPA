@@ -1159,7 +1159,7 @@ class GaussianDiffusion(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        """PyTorch Lightning validation step."""
+        """PyTorch Lightning validation step with reconstruction metrics."""
         loss = self.forward(batch)
         
         # Check for NaN loss
@@ -1168,6 +1168,77 @@ class GaussianDiffusion(pl.LightningModule):
             return torch.tensor(0.0, requires_grad=True, device=loss.device)
         
         self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=batch['ct'].shape[0])
+        
+        # Calculate reconstruction metrics every N batches (not every step - too expensive)
+        if batch_idx % 10 == 0:
+            ct = batch['ct'].cuda()
+            xray = batch['cxr'].cuda()
+            
+            # Encode to latent space
+            if isinstance(self.vqgan, VQGAN):
+                with torch.no_grad():
+                    ct_latent = self.vqgan.encode(ct, quantize=False, include_embeddings=True)
+                    
+                    # Normalize
+                    emb_min = self.vqgan.codebook.embeddings.min()
+                    emb_max = self.vqgan.codebook.embeddings.max()
+                    emb_range = emb_max - emb_min
+                    if emb_range > 1e-6:
+                        ct_latent = ((ct_latent - emb_min) / emb_range) * 2.0 - 1.0
+                    
+                    # Fix dimension order
+                    if ct_latent.dim() == 5 and ct_latent.shape[2] > ct_latent.shape[4]:
+                        ct_latent = ct_latent.permute(0, 1, 4, 2, 3)
+                    
+                    # Generate prediction (denoise from noise)
+                    shape = ct_latent.shape
+                    if self.medclip:
+                        cond = self.xray_encoder.encode_image(xray, normalize=True)
+                    else:
+                        cond = self.xray_encoder(xray)[0]
+                    
+                    # Sample from model
+                    pred_latent = self.p_sample_loop(shape, cond=cond, cond_scale=1.0)
+                    
+                    # Denormalize and decode both
+                    if emb_range > 1e-6:
+                        ct_latent_denorm = ((ct_latent + 1.0) / 2.0) * emb_range + emb_min
+                        pred_latent_denorm = ((pred_latent + 1.0) / 2.0) * emb_range + emb_min
+                    else:
+                        ct_latent_denorm = ct_latent
+                        pred_latent_denorm = pred_latent
+                    
+                    # Decode
+                    h_gt = self.vqgan.post_vq_conv(ct_latent_denorm)
+                    ct_recon = self.vqgan.decoder(h_gt)
+                    
+                    h_pred = self.vqgan.post_vq_conv(pred_latent_denorm)
+                    pred_recon = self.vqgan.decoder(h_pred)
+                    
+                    # Calculate metrics
+                    mse = torch.nn.functional.mse_loss(pred_recon, ct)
+                    mae = torch.nn.functional.l1_loss(pred_recon, ct)
+                    
+                    # PSNR: 10 * log10(max^2 / MSE)
+                    psnr = 20 * torch.log10(torch.tensor(1.0).to(mse.device)) - 10 * torch.log10(mse)
+                    
+                    # SSIM (approximate - full SSIM is expensive)
+                    # Use correlation as proxy
+                    pred_flat = pred_recon.view(pred_recon.shape[0], -1)
+                    ct_flat = ct.view(ct.shape[0], -1)
+                    pred_mean = pred_flat.mean(dim=1, keepdim=True)
+                    ct_mean = ct_flat.mean(dim=1, keepdim=True)
+                    pred_std = pred_flat.std(dim=1, keepdim=True)
+                    ct_std = ct_flat.std(dim=1, keepdim=True)
+                    correlation = ((pred_flat - pred_mean) * (ct_flat - ct_mean)).mean(dim=1) / (pred_std * ct_std + 1e-8)
+                    ssim_approx = correlation.mean()
+                    
+                    # Log metrics
+                    self.log('val/mse', mse, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+                    self.log('val/mae', mae, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+                    self.log('val/psnr', psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+                    self.log('val/ssim_approx', ssim_approx, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        
         return loss
 
     def configure_optimizers(self):
