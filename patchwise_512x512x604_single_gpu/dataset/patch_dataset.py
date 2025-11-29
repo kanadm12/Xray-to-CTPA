@@ -51,11 +51,12 @@ class FullResolutionCTPADataset(Dataset):
         self.normalize = normalize
         self.return_full_volume = return_full_volume
         
-        # Find all .nii.gz files
+        # Find all .nii and .nii.gz files (exclude files with 'swapped' in name)
         self.file_paths = sorted([
             os.path.join(root_dir, f) 
             for f in os.listdir(root_dir) 
-            if f.endswith('.nii.gz')
+            if (f.endswith('.nii.gz') or f.endswith('.nii')) 
+            and 'swapped' not in f.lower()
         ])
         
         # Split into train/val
