@@ -161,15 +161,27 @@ def stitch_patches_with_overlap(patches, patch_positions, output_shape, patch_si
             patch_weight *= axis_weights[None, None, :]
     
     # Stitch patches
-    for patch, (d_start, h_start, w_start) in zip(patches, patch_positions):
+    for idx, (patch, (d_start, h_start, w_start)) in enumerate(zip(patches, patch_positions)):
         # Convert patch to numpy
         if torch.is_tensor(patch):
             patch = patch.squeeze(0).squeeze(0).cpu().numpy()
+        
+        # Debug: print actual patch shape
+        if idx == 0:
+            print(f"First patch shape: {patch.shape}")
+            print(f"Expected patch_size (pd, ph, pw): {(pd, ph, pw)}")
+            print(f"First position (d, h, w): {(d_start, h_start, w_start)}")
         
         # Calculate valid region
         d_end = min(d_start + pd, D)
         h_end = min(h_start + ph, H)
         w_end = min(w_start + pw, W)
+        
+        # Debug problematic patches
+        if w_end - w_start != pw or h_end - h_start != ph or d_end - d_start != pd:
+            print(f"Patch {idx}: position ({d_start}, {h_start}, {w_start}), "
+                  f"valid region: {d_end-d_start}×{h_end-h_start}×{w_end-w_start}, "
+                  f"expected: {pd}×{ph}×{pw}")
         
         # Extract valid portion of patch and weights
         valid_d = d_end - d_start
