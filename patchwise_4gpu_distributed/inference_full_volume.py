@@ -199,6 +199,9 @@ def stitch_patches_with_overlap(patches, patch_positions, output_shape, patch_si
     weights[weights == 0] = 1  # Avoid division by zero
     volume /= weights
     
+    print(f"Stitched volume shape: {volume.shape}")
+    print(f"Stitched volume min/max: {volume.min():.4f} / {volume.max():.4f}")
+    
     return volume
 
 
@@ -300,6 +303,7 @@ def save_as_nifti(volume, output_path):
         volume = volume.squeeze(0)
     
     vol_np = volume.cpu().numpy()
+    print(f"Saving volume with shape: {vol_np.shape}")
     vol_np = vol_np.clip(0, 1)
     vol_np = (vol_np * 255).astype(np.uint8)
     

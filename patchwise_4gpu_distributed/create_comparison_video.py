@@ -100,6 +100,8 @@ def create_comparison_video(gen_path, gt_path, output_path, fps=10):
     
     print(f"Generated shape: {gen_vol.shape}")
     print(f"Ground truth shape: {gt_vol.shape}")
+    print(f"Generated min/max: {gen_vol.min():.2f} / {gen_vol.max():.2f}")
+    print(f"Ground truth min/max: {gt_vol.min():.2f} / {gt_vol.max():.2f}")
     
     # Normalize volumes
     gen_vol = normalize_volume(gen_vol)
