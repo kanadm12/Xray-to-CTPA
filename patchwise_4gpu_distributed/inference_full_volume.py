@@ -210,7 +210,7 @@ def generate_full_volume(xray, diffusion, vqgan,
     """
     Generate full CTPA volume by generating and stitching multiple patches.
     
-    IMPORTANT: Generated patches are [1, 1, D, H, W] = [1, 1, 128, 256, 256]
+    IMPORTANT: Generated patches are [1, 1, D, H, W] = [1, 1, 256, 256, 128]
     
     Args:
         xray: X-ray image tensor
@@ -276,13 +276,13 @@ def generate_full_volume(xray, diffusion, vqgan,
             torch.cuda.empty_cache()
     
     print("Stitching patches into full volume...")
-    # Patches are [1, 1, 128, 256, 256] in (D, H, W) order
+    # Patches are [1, 1, 256, 256, 128] in (D, H, W) order
     # Output volume shape in storage order (D, H, W)
     volume = stitch_patches_with_overlap(
         patches, 
         patch_positions,
         output_shape=(D_out, H_out, W_out),  # Storage order (D, H, W)
-        patch_size=(pd_actual, ph_actual, pw_actual),  # (128, 256, 256)
+        patch_size=(pd_actual, ph_actual, pw_actual),  # (256, 256, 128)
         stride=(sd_user, sh_user, sw_user)  # (D, H, W) order
     )
     
