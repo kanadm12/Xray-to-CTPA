@@ -74,7 +74,6 @@ def load_models(ddpm_ckpt_path, vqgan_ckpt_path, device='cuda'):
         num_frames=hparams.get('num_frames', 32),
         channels=64,
         timesteps=1000,
-        sampling_timesteps=250,  # DDIM sampling
         loss_type='l1',
         img_cond=True,
         medclip=True
