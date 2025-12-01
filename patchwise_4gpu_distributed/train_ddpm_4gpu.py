@@ -24,7 +24,7 @@ sys.path.insert(0, current_dir)
 sys.path.insert(0, parent_dir)
 
 from ddpm.diffusion import Unet3D, GaussianDiffusion
-from dataset.xray_ctpa_dataset import XrayCTPADataset
+from dataset.xray_ctpa_patch_dataset import XrayCTPAPatchDataset
 from torch.utils.data import DataLoader
 
 
@@ -42,10 +42,12 @@ def get_dataloaders(cfg):
         print(f"CTPA dir: {cfg.dataset.ctpa_dir}")
         print(f"X-ray pattern: {cfg.dataset.get('xray_pattern', '*_pa_drr.png')}")
     
-    # Create datasets using our new implementation
-    train_dataset = XrayCTPADataset(
+    # Create datasets using patch-based implementation (to avoid OOM)
+    train_dataset = XrayCTPAPatchDataset(
         ctpa_dir=cfg.dataset.ctpa_dir,
         xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
+        patch_size=cfg.dataset.get('patch_size', [128, 128, 128]),
+        stride=cfg.dataset.get('stride', [128, 128, 128]),
         split='train',
         train_split=cfg.dataset.get('train_split', 0.8),
         max_patients=cfg.dataset.get('max_patients', None),
@@ -53,9 +55,11 @@ def get_dataloaders(cfg):
         normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
-    val_dataset = XrayCTPADataset(
+    val_dataset = XrayCTPAPatchDataset(
         ctpa_dir=cfg.dataset.ctpa_dir,
         xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
+        patch_size=cfg.dataset.get('patch_size', [128, 128, 128]),
+        stride=cfg.dataset.get('stride', [128, 128, 128]),
         split='val',
         train_split=cfg.dataset.get('train_split', 0.8),
         max_patients=cfg.dataset.get('max_patients', None),
