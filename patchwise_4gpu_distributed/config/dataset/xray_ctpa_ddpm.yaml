@@ -7,7 +7,7 @@ ctpa_dir: /workspace/Xray-to-CTPA/datasets/rsna_drrs_and_nifti/   # CTPA volumes
 xray_pattern: '*_pa_drr.png'  # X-ray PNG pattern in same folders
 
 # Dataset limiting
-max_patients: 500  # Use subset (7,279 total) - set to null for all data
+max_patients: null  # Use all 7,279 patients - set to number for subset
 
 # Patch configuration (same as VQ-GAN)
 patch_size: [128, 128, 128]
