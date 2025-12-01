@@ -1,9 +1,9 @@
 name: FULL_RESOLUTION_CTPA_4GPU
-root_dir: /workspace/Xray-to-CTPA/datasets/
+root_dir: /workspace/Xray-to-CTPA/datasets/rsna_drrs_and_nifti/
 image_channels: 1
 
 # Dataset limiting (use null for all data, or set number for subset)
-max_patients: null  # Train on all 42 patients with 4 GPUs
+max_patients: 500  # Train on subset (7,279 total) - set to null for all data
 
 # Patch configuration
 patch_size: [128, 128, 128]  # D, H, W

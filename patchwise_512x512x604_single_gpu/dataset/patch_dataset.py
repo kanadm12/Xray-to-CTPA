@@ -94,9 +94,13 @@ class FullResolutionCTPADataset(Dataset):
         nii = nib.load(file_path)
         volume = nii.get_fdata()
         
+        # Handle files with channel dimension: (1, H, W, D) or (C, H, W, D)
+        if volume.ndim == 4 and volume.shape[0] == 1:
+            volume = volume.squeeze(0)  # Remove channel dimension -> (H, W, D)
+        
         # Convert to tensor and add channel dimension
         volume = torch.from_numpy(volume).float()
-        volume = volume.unsqueeze(0)  # [1, D, H, W]
+        volume = volume.unsqueeze(0)  # [1, D, H, W] or [1, H, W, D]
         
         # Normalize to [-1, 1]
         if self.normalize:

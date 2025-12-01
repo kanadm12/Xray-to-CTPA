@@ -6,7 +6,14 @@ import os
 import torchio as tio
 
 # Find all .nii and .nii.gz files - try multiple common locations
-possible_dirs = ['./datasets', '../datasets', '/workspace/datasets', './']
+possible_dirs = [
+    '/workspace/Xray-to-CTPA/datasets/rsna_drrs_and_nifti',
+    './datasets/rsna_drrs_and_nifti',
+    './datasets', 
+    '../datasets', 
+    '/workspace/datasets', 
+    './'
+]
 data_dir = None
 
 for d in possible_dirs:
@@ -14,6 +21,7 @@ for d in possible_dirs:
         test_files = glob.glob(f'{d}/**/*.nii.gz', recursive=True) or glob.glob(f'{d}/**/*.nii', recursive=True)
         if test_files:
             data_dir = d
+            print(f"Found data in: {d}")
             break
 
 if not data_dir:
@@ -38,22 +46,30 @@ for i, fpath in enumerate(files[:5]):
     print(f"   Shape: {img.shape} (C, H, W, D)")
     print(f"   Spacing: {img.spacing}")
     
-    # Calculate what gets cropped
-    crop_h = max(0, img.shape[1] - 256)
-    crop_w = max(0, img.shape[2] - 256)
-    crop_d = max(0, img.shape[3] - 32)
+    # Handle channel dimension
+    if img.shape[0] == 1:
+        print(f"   ℹ️  Single channel - will be handled automatically")
+    
+    # Calculate what gets cropped for 512x512x604 target
+    crop_h = max(0, img.shape[1] - 512)
+    crop_w = max(0, img.shape[2] - 512)
+    crop_d = max(0, img.shape[3] - 604)
     
     if crop_h > 0 or crop_w > 0 or crop_d > 0:
-        print(f"   ⚠️  CROPPING: Losing {crop_h}x{crop_w}x{crop_d} voxels")
+        print(f"   ⚠️  CROPPING: Will lose {crop_h}x{crop_w}x{crop_d} voxels")
     else:
-        pad_h = max(0, 256 - img.shape[1])
-        pad_w = max(0, 256 - img.shape[2])
-        pad_d = max(0, 32 - img.shape[3])
+        pad_h = max(0, 512 - img.shape[1])
+        pad_w = max(0, 512 - img.shape[2])
+        pad_d = max(0, 604 - img.shape[3])
         if pad_h > 0 or pad_w > 0 or pad_d > 0:
-            print(f"   ℹ️  PADDING: Adding {pad_h}x{pad_w}x{pad_d} voxels")
+            print(f"   ℹ️  PADDING: Will add {pad_h}x{pad_w}x{pad_d} voxels")
         else:
-            print(f"   ✓ Perfect fit!")
+            print(f"   ✓ Perfect match for 512x512x604!")
 
 print("\n" + "=" * 80)
-print(f"Current training configuration: 256x256x32")
-print(f"All images will be cropped/padded to this size")
+print(f"Training configurations:")
+print(f"  • baseline_256x256x64: 256x256x64 (heavy cropping/downsampling)")
+print(f"  • patchwise_512x512x604: 512x512x604 (recommended for your data)")
+print(f"  • patchwise_4gpu: 512x512x604 with distributed training")
+print(f"\nAll images will be automatically cropped/padded to target size.")
+print(f"Channel dimensions (if present) are handled automatically.")

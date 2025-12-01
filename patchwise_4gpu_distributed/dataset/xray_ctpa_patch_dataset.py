@@ -233,6 +233,10 @@ class XrayCTPAPatchDataset(Dataset):
         image = sitk.ReadImage(ctpa_path)
         ctpa = sitk.GetArrayFromImage(image).astype(np.float32)
         
+        # Handle files with channel dimension: (1, H, W, D) or (C, D, H, W)
+        if ctpa.ndim == 4 and ctpa.shape[0] == 1:
+            ctpa = ctpa.squeeze(0)  # Remove channel dimension
+        
         # Target shape: 512x512x604
         target_shape = (604, 512, 512)  # D, H, W
         current_shape = ctpa.shape

@@ -138,6 +138,10 @@ class XrayCTPADataset(Dataset):
         image = sitk.ReadImage(ctpa_path)
         ctpa = sitk.GetArrayFromImage(image).astype(np.float32)
         
+        # Handle files with channel dimension: (1, H, W, D) or (C, D, H, W)
+        if ctpa.ndim == 4 and ctpa.shape[0] == 1:
+            ctpa = ctpa.squeeze(0)  # Remove channel dimension
+        
         # Pad or crop to target depth of 604 (will become 151 after VQ-GAN encoding with downsample=4)
         target_depth = 604
         current_depth = ctpa.shape[0]

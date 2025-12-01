@@ -2,9 +2,9 @@
 # Supports 512×512×604 volumes with patch extraction
 
 name: FULL_RESOLUTION_CTPA
-root_dir: /workspace/Xray-to-CTPA/datasets/
+root_dir: /workspace/Xray-to-CTPA/datasets/rsna_drrs_and_nifti/
 image_channels: 1
-max_patients: 30  # Limit to first N patient folders for faster initial training (set to null for all data)
+max_patients: 100  # Limit to first N patient folders for faster initial training (set to null for all 7,279)
 
 # Patch extraction parameters (D, H, W order to match Conv3d)
 # Volume shape: [C=1, D=604, H=512, W=512]
