@@ -46,24 +46,22 @@ def get_dataloaders(cfg):
     train_dataset = XrayCTPAPatchDataset(
         ctpa_dir=cfg.dataset.ctpa_dir,
         xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
-        patch_size=cfg.dataset.get('patch_size', [128, 128, 128]),
-        stride=cfg.dataset.get('stride', [128, 128, 128]),
+        patch_size=tuple(cfg.dataset.get('patch_size', [128, 128, 128])),
+        stride=tuple(cfg.dataset.get('stride', [128, 128, 128])),
         split='train',
         train_split=cfg.dataset.get('train_split', 0.8),
         max_patients=cfg.dataset.get('max_patients', None),
-        use_latent=cfg.dataset.get('use_latent', True),
         normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
     val_dataset = XrayCTPAPatchDataset(
         ctpa_dir=cfg.dataset.ctpa_dir,
         xray_pattern=cfg.dataset.get('xray_pattern', '*_pa_drr.png'),
-        patch_size=cfg.dataset.get('patch_size', [128, 128, 128]),
-        stride=cfg.dataset.get('stride', [128, 128, 128]),
+        patch_size=tuple(cfg.dataset.get('patch_size', [128, 128, 128])),
+        stride=tuple(cfg.dataset.get('stride', [128, 128, 128])),
         split='val',
         train_split=cfg.dataset.get('train_split', 0.8),
         max_patients=cfg.dataset.get('max_patients', None),
-        use_latent=cfg.dataset.get('use_latent', True),
         normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
