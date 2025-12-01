@@ -90,11 +90,12 @@ def process_dataset(data_dir, target_depth=604, in_place=False, only_nii=False):
             ]
             nii_files.extend(nii_gz)
         
-        # .nii files
+        # .nii files only (not .nii.gz)
         nii = [
             f for f in glob(os.path.join(patient_folder, '*.nii'))
             if 'swapped' not in os.path.basename(f).lower()
             and 'resampled' not in os.path.basename(f).lower()
+            and not f.endswith('.nii.gz')
         ]
         nii_files.extend(nii)
         

@@ -72,10 +72,11 @@ class XrayCTPADataset(Dataset):
             ]
             ctpa_files.extend(nii_gz_files)
             
-            # Check for .nii files (exclude swapped)
+            # Check for .nii files only (not .nii.gz) (exclude swapped)
             nii_files = [
                 f for f in glob(os.path.join(patient_folder, '*.nii'))
                 if 'swapped' not in os.path.basename(f).lower()
+                and not f.endswith('.nii.gz')
             ]
             ctpa_files.extend(nii_files)
             
