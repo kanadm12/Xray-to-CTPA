@@ -6,9 +6,9 @@ vqgan_ckpt: ./outputs/vqgan_patches_4gpu/checkpoints/last.ckpt
 vae_ckpt: null
 
 # Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])
-# Original: 512×512×604 → Latent: 128×128×151
-diffusion_img_size: 128      # H, W after VQ-GAN encoding
-diffusion_depth_size: 151    # D after VQ-GAN encoding (604/4 = 151)
+# Patch: 128×128×128 → Latent: 32×32×32
+diffusion_img_size: 32       # H, W after VQ-GAN encoding (128/4 = 32)
+diffusion_depth_size: 32     # D after VQ-GAN encoding (128/4 = 32)
 diffusion_num_channels: 64   # VQ-GAN embedding_dim
 dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
 
