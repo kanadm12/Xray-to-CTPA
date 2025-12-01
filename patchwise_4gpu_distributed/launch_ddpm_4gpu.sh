@@ -8,10 +8,11 @@ echo "4-GPU DDPM TRAINING - X-ray to CTPA Generation"
 echo "=================================================="
 
 # Environment setup
-export NCCL_DEBUG=INFO
-export NCCL_IB_DISABLE=0
-export NCCL_NET_GDR_LEVEL=5
-export NCCL_P2P_LEVEL=NVL
+export NCCL_DEBUG=WARN
+export NCCL_IB_DISABLE=1
+export NCCL_P2P_DISABLE=0
+export NCCL_SOCKET_IFNAME=eth0
+export NCCL_TIMEOUT=1800
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # GPU configuration
