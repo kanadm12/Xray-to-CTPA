@@ -173,9 +173,9 @@ def main_wrapper():
             LearningRateMonitor(logging_interval='step')
         ]
         
-        # DDP Strategy
+        # DDP Strategy - enable find_unused_parameters for models with auxiliary losses
         ddp_strategy = DDPStrategy(
-            find_unused_parameters=cfg.model.get('find_unused_parameters', False),
+            find_unused_parameters=True,  # Required when discriminator/perceptual networks present but not used
             gradient_as_bucket_view=True,
             static_graph=False,
         )
