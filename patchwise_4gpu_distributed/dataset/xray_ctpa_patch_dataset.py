@@ -265,17 +265,25 @@ class XrayCTPAPatchDataset(Dataset):
             start = (current_shape[2] - target_shape[2]) // 2
             ctpa = ctpa[:, :, start:start + target_shape[2]]
         
-        # Normalize
+        # Normalize with epsilon to prevent division by zero
         if self.normalization == 'min_max':
             min_val = ctpa.min()
             max_val = ctpa.max()
-            if max_val > min_val:
-                ctpa = (ctpa - min_val) / (max_val - min_val)  # [0, 1]
+            eps = 1e-8
+            if max_val > min_val + eps:
+                ctpa = (ctpa - min_val) / (max_val - min_val + eps)  # [0, 1]
+            else:
+                # If uniform volume, set to middle value 0.5
+                ctpa = np.full_like(ctpa, 0.5)
         else:
             mean = ctpa.mean()
             std = ctpa.std()
-            if std > 0:
-                ctpa = (ctpa - mean) / std
+            eps = 1e-8
+            if std > eps:
+                ctpa = (ctpa - mean) / (std + eps)
+            else:
+                # If uniform volume, center at 0
+                ctpa = ctpa - mean
         
         # Convert to tensor: [D, H, W] → [C, D, H, W]
         ctpa = torch.from_numpy(ctpa).unsqueeze(0).float()

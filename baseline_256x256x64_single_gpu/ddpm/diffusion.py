@@ -913,6 +913,12 @@ class GaussianDiffusion(pl.LightningModule):
                 cond = cond.to(device)
             else:
                 cond = self.xray_encoder(cond.to(device))[0]
+            
+            # Safety check for X-ray encoding
+            if torch.isnan(cond).any() or torch.isinf(cond).any():
+                print("WARNING: NaN/Inf in X-ray encoding, replacing with zeros")
+                cond = torch.nan_to_num(cond, nan=0.0, posinf=1.0, neginf=-1.0)
+            cond = torch.clamp(cond, -10.0, 10.0)
 
             if self.cfg:
                 # when sampling the label is unknown class = 2
@@ -1034,6 +1040,15 @@ class GaussianDiffusion(pl.LightningModule):
     def p_losses(self, x_start, t, cond=None, label=None, noise=None, **kwargs):
         b, c, f, h, w, device = *x_start.shape, x_start.device
         noise = default(noise, lambda: torch.randn_like(x_start))
+        
+        # Check for NaN/Inf in inputs
+        if torch.isnan(x_start).any() or torch.isinf(x_start).any():
+            print("WARNING: NaN/Inf detected in x_start, replacing with zeros")
+            x_start = torch.nan_to_num(x_start, nan=0.0, posinf=1.0, neginf=-1.0)
+        
+        if cond is not None and (torch.isnan(cond).any() or torch.isinf(cond).any()):
+            print("WARNING: NaN/Inf detected in conditioning, replacing with zeros")
+            cond = torch.nan_to_num(cond, nan=0.0, posinf=1.0, neginf=-1.0)
 
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         if is_list_str(cond):
@@ -1046,6 +1061,12 @@ class GaussianDiffusion(pl.LightningModule):
                 cond = cond.to(device)
             else:
                 cond = self.xray_encoder(cond.to(device))[0]
+            
+            # Safety check for X-ray encoding
+            if torch.isnan(cond).any() or torch.isinf(cond).any():
+                print("WARNING: NaN/Inf in X-ray encoding, replacing with zeros")
+                cond = torch.nan_to_num(cond, nan=0.0, posinf=1.0, neginf=-1.0)
+            cond = torch.clamp(cond, -10.0, 10.0)
 
         if self.cfg:
             random_n = torch.rand(1)
@@ -1069,7 +1090,16 @@ class GaussianDiffusion(pl.LightningModule):
             cond = torch.cat((cond, label), dim=-1)
 
         pred_noise = self.denoise_fn(x_noisy, t, cond=cond, **kwargs)
+        
+        # Check for NaN in prediction
+        if torch.isnan(pred_noise).any() or torch.isinf(pred_noise).any():
+            print("WARNING: NaN/Inf in pred_noise, replacing with noise")
+            pred_noise = noise
+        
         x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=pred_noise)
+        
+        # Clamp reconstruction to prevent extreme values
+        x_recon = torch.clamp(x_recon, -10.0, 10.0)
 
         # Classification loss
         cls_loss = 0
@@ -1077,15 +1107,22 @@ class GaussianDiffusion(pl.LightningModule):
             output, _ = self.classifier(x_recon)
             cls_loss = F.binary_cross_entropy_with_logits(output, label, pos_weight=self.pos_weight)
             cls_loss = cls_loss * self.classification_weight
-        # Perceptual loss
+            if torch.isnan(cls_loss) or torch.isinf(cls_loss):
+                cls_loss = torch.tensor(0.0, device=device, requires_grad=True)
+        
+        # Perceptual loss (skip with AMP to avoid instability)
         lpips_loss = 0
-        if self.perceptual_weight > 0:
+        if self.perceptual_weight > 0 and not torch.is_autocast_enabled():
             lpips_loss = self.lpips_loss_fn(x_start,x_recon)
+            if torch.isnan(lpips_loss) or torch.isinf(lpips_loss):
+                lpips_loss = torch.tensor(0.0, device=device, requires_grad=True)
 
-        # Discriminator loss
+        # Discriminator loss (skip with AMP to avoid instability)
         disc_loss = 0
-        if self.discriminator_weight > 0:
+        if self.discriminator_weight > 0 and not torch.is_autocast_enabled():
             disc_loss = self.disc_loss_fn(x_start,x_recon)
+            if torch.isnan(disc_loss) or torch.isinf(disc_loss):
+                disc_loss = torch.tensor(0.0, device=device, requires_grad=True)
 
         if self.loss_type == 'l1':
             loss = F.l1_loss(noise, pred_noise)
@@ -1103,6 +1140,14 @@ class GaussianDiffusion(pl.LightningModule):
             loss = F.l1_loss(noise, pred_noise)*self.l1_weight + lpips_loss + disc_loss + cls_loss
         else:
             raise NotImplementedError()
+        
+        # Final NaN check on total loss
+        if torch.isnan(loss) or torch.isinf(loss):
+            print("WARNING: NaN/Inf in final loss, returning zero")
+            return torch.tensor(0.0, device=device, requires_grad=True)
+        
+        # Clamp loss to reasonable range
+        loss = torch.clamp(loss, 0.0, 1000.0)
 
         return loss
 
@@ -1114,12 +1159,15 @@ class GaussianDiffusion(pl.LightningModule):
             with torch.no_grad():
                 ct = self.vqgan.encode(
                     ct, quantize=False, include_embeddings=True)
-                # normalize to -1 and 1
+                # normalize to -1 and 1 with epsilon and clamping
                 emb_min = self.vqgan.codebook.embeddings.min()
                 emb_max = self.vqgan.codebook.embeddings.max()
                 emb_range = emb_max - emb_min
-                if emb_range > 1e-6:  # Avoid division by zero
-                    ct = ((ct - emb_min) / emb_range) * 2.0 - 1.0
+                eps = 1e-6
+                if emb_range > eps:
+                    ct = ((ct - emb_min) / (emb_range + eps)) * 2.0 - 1.0
+                    # Clamp to prevent extreme values
+                    ct = torch.clamp(ct, -10.0, 10.0)
                 else:
                     ct = torch.zeros_like(ct)
                 
@@ -1183,8 +1231,10 @@ class GaussianDiffusion(pl.LightningModule):
                     emb_min = self.vqgan.codebook.embeddings.min()
                     emb_max = self.vqgan.codebook.embeddings.max()
                     emb_range = emb_max - emb_min
-                    if emb_range > 1e-6:
-                        ct_latent = ((ct_latent - emb_min) / emb_range) * 2.0 - 1.0
+                    eps = 1e-6
+                    if emb_range > eps:
+                        ct_latent = ((ct_latent - emb_min) / (emb_range + eps)) * 2.0 - 1.0
+                        ct_latent = torch.clamp(ct_latent, -10.0, 10.0)
                     
                     # Fix dimension order
                     if ct_latent.dim() == 5 and ct_latent.shape[2] > ct_latent.shape[4]:
@@ -1196,6 +1246,11 @@ class GaussianDiffusion(pl.LightningModule):
                         cond = self.xray_encoder.encode_image(xray, normalize=True)
                     else:
                         cond = self.xray_encoder(xray)[0]
+                    
+                    # Safety check for X-ray encoding
+                    if torch.isnan(cond).any() or torch.isinf(cond).any():
+                        cond = torch.nan_to_num(cond, nan=0.0, posinf=1.0, neginf=-1.0)
+                    cond = torch.clamp(cond, -10.0, 10.0)
                     
                     # Sample from model
                     pred_latent = self.p_sample_loop(shape, cond=cond, cond_scale=1.0)

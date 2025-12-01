@@ -44,10 +44,10 @@ denoising_fn: Unet3D
 objective: pred_x0
 
 # Loss weights
-loss_type: l1_lpips
+loss_type: l1  # Start with simple L1, then enable l1_lpips after warmup
 l1_weight: 1.0
-perceptual_weight: 0.01
-discriminator_weight: 0.0  # Can enable after warmup
+perceptual_weight: 0.0  # Disabled initially - unstable with AMP, enable after 5-10 epochs
+discriminator_weight: 0.0  # Disabled initially - enable after warmup
 classification_weight: 0.0
 
 # LoRA fine-tuning
