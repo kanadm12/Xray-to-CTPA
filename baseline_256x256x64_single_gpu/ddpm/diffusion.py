@@ -732,7 +732,7 @@ class GaussianDiffusion(pl.LightningModule):
         self.min_val = dataset_min_value
 
         if vqgan_ckpt is not None:
-            self.vqgan = VQGAN.load_from_checkpoint(vqgan_ckpt).cuda()
+            self.vqgan = VQGAN.load_from_checkpoint(vqgan_ckpt, weights_only=False).cuda()
             self.vqgan.eval()
 
         if vae_ckpt is not None:
