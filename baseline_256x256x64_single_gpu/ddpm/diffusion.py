@@ -1207,7 +1207,7 @@ class GaussianDiffusion(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        """PyTorch Lightning validation step with reconstruction metrics."""
+        """PyTorch Lightning validation step - optimized for speed."""
         loss = self.forward(batch)
         
         # Check for NaN loss
@@ -1217,8 +1217,9 @@ class GaussianDiffusion(pl.LightningModule):
         
         self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=batch['ct'].shape[0])
         
-        # Calculate reconstruction metrics every N batches (not every step - too expensive)
-        if batch_idx % 10 == 0:
+        # Only sample on first batch and every 5 epochs (instead of every 10 batches)
+        # This reduces validation time from 16+ hours to minutes
+        if batch_idx == 0 and self.current_epoch % 5 == 0:
             ct = batch['ct'].cuda()
             xray = batch['cxr'].cuda()
             
