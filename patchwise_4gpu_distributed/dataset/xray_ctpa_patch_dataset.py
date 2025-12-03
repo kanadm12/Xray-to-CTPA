@@ -231,6 +231,8 @@ class XrayCTPAPatchDataset(Dataset):
         """Load CTPA .nii.gz volume and convert to tensor."""
         # Load NIFTI file
         image = sitk.ReadImage(ctpa_path)
+        # Reorient to standard RAS (Right-Anterior-Superior) for consistent anatomy
+        image = sitk.DICOMOrient(image, 'RAS')
         ctpa = sitk.GetArrayFromImage(image).astype(np.float32)
         
         # Handle files with channel dimension: (1, H, W, D) or (C, D, H, W)

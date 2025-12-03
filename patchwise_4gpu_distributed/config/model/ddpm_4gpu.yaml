@@ -14,7 +14,7 @@ dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
 
 # Training configuration
 batch_size: 1   # Per GPU (effective = 4)
-num_workers: 12  # Increased from 4 to utilize 96 vCPUs (12 workers × 4 GPUs = 48 total)
+num_workers: 20  # Optimized for 96 vCPUs (20 workers × 4 GPUs = 80 cores, leaving 16 for system)
 gpus: 4
 gradient_checkpointing: true  # Enable to reduce memory usage
 
