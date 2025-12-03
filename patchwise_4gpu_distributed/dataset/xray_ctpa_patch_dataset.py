@@ -211,6 +211,9 @@ class XrayCTPAPatchDataset(Dataset):
         # Load PNG image
         img = Image.open(xray_path).convert('L')  # Grayscale
         
+        # Fix upside-down PA X-rays - flip vertically to correct orientation
+        img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        
         # Resize to 224x224 for MedCLIP (expects 224x224 input)
         img = img.resize((224, 224), Image.BILINEAR)
         
