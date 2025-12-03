@@ -159,16 +159,47 @@ def main_wrapper():
             dataset_max_value=cfg.model.dataset_max_value,
         )
         
-        # Setup callbacks
+        # Setup callbacks with improved checkpointing
         callbacks = [
+            # Best model checkpoint based on validation loss
             ModelCheckpoint(
                 dirpath=cfg.model.results_folder,
-                filename='ddpm-epoch{epoch:02d}-loss{val/loss:.4f}',
+                filename='best-epoch{epoch:02d}-val_loss{val/loss:.4f}',
                 monitor='val/loss',
                 mode='min',
                 save_top_k=3,
+                save_last=False,
+                every_n_epochs=1,
+                verbose=True
+            ),
+            # Best model checkpoint based on training loss
+            ModelCheckpoint(
+                dirpath=cfg.model.results_folder,
+                filename='best-train-epoch{epoch:02d}-train_loss{train/loss_epoch:.4f}',
+                monitor='train/loss_epoch',
+                mode='min',
+                save_top_k=2,
+                save_last=False,
+                every_n_epochs=1,
+                verbose=True
+            ),
+            # Periodic checkpoint every 5 epochs (for resume/safety)
+            ModelCheckpoint(
+                dirpath=cfg.model.results_folder,
+                filename='periodic-epoch{epoch:02d}',
+                save_top_k=-1,  # Save all
+                every_n_epochs=5,
+                save_last=False,
+                verbose=True
+            ),
+            # Last checkpoint (always keep most recent)
+            ModelCheckpoint(
+                dirpath=cfg.model.results_folder,
+                filename='last',
+                save_top_k=1,
                 save_last=True,
-                every_n_epochs=1
+                every_n_epochs=1,
+                verbose=False
             ),
             LearningRateMonitor(logging_interval='step')
         ]
