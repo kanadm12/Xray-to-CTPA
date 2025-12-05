@@ -239,7 +239,8 @@ def main():
     # First, create the UNet model
     from ddpm.diffusion import Unet3D
     
-    cfg = config['model']
+    # Config is flat, not nested
+    cfg = config
     model = Unet3D(
         dim=cfg['diffusion_img_size'],
         cond_dim=cfg['cond_dim'],
