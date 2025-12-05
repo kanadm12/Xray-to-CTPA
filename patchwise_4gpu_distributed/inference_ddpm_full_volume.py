@@ -200,8 +200,8 @@ def main():
     parser.add_argument('--xray', type=str, required=True, help='Path to input PA X-ray (.png)')
     parser.add_argument('--checkpoint', type=str, default='./checkpoints/ddpm_4gpu/last.ckpt',
                        help='Path to DDPM checkpoint')
-    parser.add_argument('--config', type=str, default='./config/model/ddpm_4gpu.yaml',
-                       help='Path to model config')
+    parser.add_argument('--config', type=str, default=None,
+                       help='Path to model config (default: auto-detect from script location)')
     parser.add_argument('--output_dir', type=str, default='./inference_outputs',
                        help='Directory to save outputs')
     parser.add_argument('--num_patches', type=int, default=80,
@@ -213,6 +213,11 @@ def main():
     
     args = parser.parse_args()
     
+    # Auto-detect config path relative to script location
+    if args.config is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        args.config = os.path.join(script_dir, 'config', 'model', 'ddpm_4gpu.yaml')
+    
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
     
@@ -221,6 +226,7 @@ def main():
     print("=" * 80)
     print(f"Input X-ray: {args.xray}")
     print(f"Checkpoint: {args.checkpoint}")
+    print(f"Config: {args.config}")
     print(f"Output directory: {args.output_dir}")
     print(f"Device: {args.device}")
     print()
