@@ -72,11 +72,15 @@ def generate_patches(diffusion_model, xray_condition, num_patches=80, device='cu
                 print(f"  Generated {i+1}/{num_patches} patches...")
             
             # Sample from diffusion model
-            # Shape: [1, 1, 128, 128, 128] decoded from latent space
+            # Returns decoded patches [batch, 1, 128, 128, 128]
             sample = diffusion_model.sample(
                 cond=xray_condition,
                 batch_size=1
             )
+            
+            # Debug: print shape on first iteration
+            if i == 0:
+                print(f"  Sample shape: {sample.shape}")
             
             patches.append(sample.cpu())
     
