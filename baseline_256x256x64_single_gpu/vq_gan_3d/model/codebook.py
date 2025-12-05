@@ -127,7 +127,7 @@ class Codebook(nn.Module):
         unique_codes = torch.unique(encoding_indices)
         codebook_usage = len(unique_codes)
 
-        return dict(embeddings=embeddings_st, encodings=encoding_indices,
+        return dict(embeddings=embeddings_st, encodings=encoding_indices_reshaped,
                     commitment_loss=commitment_loss, perplexity=perplexity,
                     codebook_usage=codebook_usage)
 
