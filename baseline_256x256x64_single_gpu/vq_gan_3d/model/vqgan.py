@@ -119,11 +119,16 @@ class VQGAN(pl.LightningModule):
         return h
 
     def decode(self, latent, quantize=False):
+        print(f"DEBUG decode: input latent shape = {latent.shape}, quantize = {quantize}")
         if quantize:
             vq_output = self.codebook(latent)
             latent = vq_output['encodings']
+            print(f"DEBUG decode: after codebook, encodings shape = {latent.shape}")
         h = F.embedding(latent, self.codebook.embeddings)
-        h = self.post_vq_conv(shift_dim(h, -1, 1))
+        print(f"DEBUG decode: after F.embedding, h shape = {h.shape}")
+        h_shifted = shift_dim(h, -1, 1)
+        print(f"DEBUG decode: after shift_dim, h shape = {h_shifted.shape}")
+        h = self.post_vq_conv(h_shifted)
         return self.decoder(h)
 
     def forward(self, x, optimizer_idx=None, log_image=False):
