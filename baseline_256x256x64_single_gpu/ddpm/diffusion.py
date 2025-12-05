@@ -935,8 +935,12 @@ class GaussianDiffusion(pl.LightningModule):
 
         if isinstance(self.vqgan, VQGAN):
             # denormalize TODO: Remove eventually
-            _sample = (((_sample + 1.0) / 2.0) * (self.vqgan.codebook.embeddings.max() -
-                                                  self.vqgan.codebook.embeddings.min())) + self.vqgan.codebook.embeddings.min()
+            print(f"DEBUG: _sample shape before denorm: {_sample.shape}")
+            codebook_min = self.vqgan.codebook.embeddings.min().item()
+            codebook_max = self.vqgan.codebook.embeddings.max().item()
+            print(f"DEBUG: codebook range: [{codebook_min}, {codebook_max}]")
+            _sample = (((_sample + 1.0) / 2.0) * (codebook_max - codebook_min)) + codebook_min
+            print(f"DEBUG: _sample shape after denorm: {_sample.shape}")
 
             _sample = self.vqgan.decode(_sample, quantize=True)
 
