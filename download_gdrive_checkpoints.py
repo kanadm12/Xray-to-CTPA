@@ -140,7 +140,7 @@ def main():
     # List folders
     list_gdrive_folders()
     
-    # Download VQ-GAN checkpoints
+    # Download VQ-GAN checkpoints only
     print_color("\n[4/5] VQ-GAN Checkpoint Download", BLUE)
     print("Enter the Google Drive path to your VQ-GAN checkpoints")
     print("Examples:")
@@ -155,31 +155,15 @@ def main():
     else:
         print_color("Skipping VQ-GAN download", YELLOW)
     
-    # Download DDPM checkpoints
-    print_color("\n[5/5] DDPM Checkpoint Download", BLUE)
-    print("Enter the Google Drive path to your DDPM checkpoints")
-    print("Examples:")
-    print("  - checkpoints/ddpm_4gpu_patches")
-    print("  - X-ray2CTPA/ddpm_checkpoints")
-    
-    ddpm_path = input("\nDDPM path (or press Enter to skip): ").strip()
-    
-    if ddpm_path:
-        download_checkpoints(ddpm_path, DDPM_DIR, "DDPM")
-    else:
-        print_color("Skipping DDPM download", YELLOW)
-    
     # Summary
     print_color("\n" + "=" * 50, GREEN)
     print_color("✓ Download Complete!", GREEN)
     print_color("=" * 50, GREEN)
-    print(f"\nCheckpoint locations:")
+    print(f"\nCheckpoint location:")
     print(f"  VQ-GAN: {VQGAN_DIR}")
-    print(f"  DDPM:   {DDPM_DIR}")
     
-    print("\nTo verify downloads:")
+    print("\nTo verify download:")
     print(f"  ls -lh {VQGAN_DIR}")
-    print(f"  ls -lh {DDPM_DIR}")
     
     print("\nTo sync again later:")
     print("  python3 download_gdrive_checkpoints.py")

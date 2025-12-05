@@ -235,13 +235,17 @@ def main_wrapper():
             sync_batchnorm=cfg.model.get('sync_batchnorm', True),
         )
         
-        # Train
+        # Train - with optional resume from checkpoint
+        resume_ckpt = cfg.model.get('resume_ckpt', None)
+        
         if local_rank == 0:
             print("\nStarting DDPM training...")
             print(f"Training for {cfg.model.get('max_epochs', 30)} epochs")
             print(f"Train samples: {len(train_loader.dataset)}, Val samples: {len(val_loader.dataset)}")
+            if resume_ckpt:
+                print(f"Resuming from checkpoint: {resume_ckpt}")
         
-        trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader)
+        trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader, ckpt_path=resume_ckpt)
         
         if local_rank == 0:
             print("\n" + "=" * 80)
