@@ -235,10 +235,47 @@ def main():
     
     # Load diffusion model
     print("\n[3/6] Loading diffusion model from checkpoint...")
-    diffusion_model = GaussianDiffusion.load_from_checkpoint(
-        args.checkpoint,
-        strict=False
+    
+    # First, create the UNet model
+    from ddpm.diffusion import Unet3D
+    
+    cfg = config['model']
+    model = Unet3D(
+        dim=cfg['diffusion_img_size'],
+        cond_dim=cfg['cond_dim'],
+        dim_mults=cfg['dim_mults'],
+        channels=cfg['diffusion_num_channels'],
+        resnet_groups=8,
+        classifier_free_guidance=cfg.get('classifier_free_guidance', False),
+        medclip=cfg.get('medclip', True)
     )
+    
+    # Then create GaussianDiffusion with the model
+    diffusion_model = GaussianDiffusion(
+        model,
+        vqgan_ckpt=cfg['vqgan_ckpt'],
+        vae_ckpt=cfg.get('vae_ckpt', None),
+        image_size=cfg['diffusion_img_size'],
+        num_frames=cfg['diffusion_depth_size'],
+        channels=cfg['diffusion_num_channels'],
+        timesteps=cfg['timesteps'],
+        img_cond=True,
+        loss_type=cfg.get('loss_type', 'l1'),
+        l1_weight=cfg.get('l1_weight', 1.0),
+        perceptual_weight=cfg.get('perceptual_weight', 0.0),
+        discriminator_weight=cfg.get('discriminator_weight', 0.0),
+        classification_weight=cfg.get('classification_weight', 0.0),
+        classifier_free_guidance=cfg.get('classifier_free_guidance', False),
+        medclip=cfg.get('medclip', True),
+        name_dataset=cfg.get('name_dataset', 'CTPA'),
+        dataset_min_value=cfg.get('dataset_min_value', -12.911299),
+        dataset_max_value=cfg.get('dataset_max_value', 9.596558),
+    )
+    
+    # Load checkpoint weights
+    checkpoint = torch.load(args.checkpoint, map_location='cpu')
+    diffusion_model.load_state_dict(checkpoint['state_dict'], strict=False)
+    
     diffusion_model.eval()
     diffusion_model = diffusion_model.to(args.device)
     print("✓ Model loaded and ready")
