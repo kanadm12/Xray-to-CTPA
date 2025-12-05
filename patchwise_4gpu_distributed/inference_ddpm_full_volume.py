@@ -200,6 +200,8 @@ def main():
     parser.add_argument('--xray', type=str, required=True, help='Path to input PA X-ray (.png)')
     parser.add_argument('--checkpoint', type=str, default='./checkpoints/ddpm_4gpu/last.ckpt',
                        help='Path to DDPM checkpoint')
+    parser.add_argument('--vqgan_ckpt', type=str, required=True,
+                       help='Path to VQ-GAN checkpoint')
     parser.add_argument('--config', type=str, default=None,
                        help='Path to model config (default: auto-detect from script location)')
     parser.add_argument('--output_dir', type=str, default='./inference_outputs',
@@ -225,7 +227,8 @@ def main():
     print("DDPM Inference - X-ray → CTPA Generation")
     print("=" * 80)
     print(f"Input X-ray: {args.xray}")
-    print(f"Checkpoint: {args.checkpoint}")
+    print(f"DDPM Checkpoint: {args.checkpoint}")
+    print(f"VQ-GAN Checkpoint: {args.vqgan_ckpt}")
     print(f"Config: {args.config}")
     print(f"Output directory: {args.output_dir}")
     print(f"Device: {args.device}")
@@ -261,9 +264,10 @@ def main():
     )
     
     # Then create GaussianDiffusion with the model
+    # Override config VQ-GAN path with command line argument
     diffusion_model = GaussianDiffusion(
         model,
-        vqgan_ckpt=cfg['vqgan_ckpt'],
+        vqgan_ckpt=args.vqgan_ckpt,
         vae_ckpt=cfg.get('vae_ckpt', None),
         image_size=cfg['diffusion_img_size'],
         num_frames=cfg['diffusion_depth_size'],
