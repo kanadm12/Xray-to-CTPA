@@ -1280,18 +1280,23 @@ class GaussianDiffusion(pl.LightningModule):
                     mae = torch.nn.functional.l1_loss(pred_recon, ct)
                     
                     # PSNR: 10 * log10(max^2 / MSE)
-                    psnr = 20 * torch.log10(torch.tensor(1.0).to(mse.device)) - 10 * torch.log10(mse)
+                    # Data range is [-1, 1] so max range = 2.0
+                    data_range = 2.0
+                    psnr = 20 * torch.log10(torch.tensor(data_range).to(mse.device)) - 10 * torch.log10(mse + 1e-10)
                     
                     # SSIM (approximate - full SSIM is expensive)
-                    # Use correlation as proxy
+                    # Use Pearson correlation as proxy
                     pred_flat = pred_recon.view(pred_recon.shape[0], -1)
                     ct_flat = ct.view(ct.shape[0], -1)
                     pred_mean = pred_flat.mean(dim=1, keepdim=True)
                     ct_mean = ct_flat.mean(dim=1, keepdim=True)
-                    pred_std = pred_flat.std(dim=1, keepdim=True)
-                    ct_std = ct_flat.std(dim=1, keepdim=True)
-                    correlation = ((pred_flat - pred_mean) * (ct_flat - ct_mean)).mean(dim=1) / (pred_std * ct_std + 1e-8)
-                    ssim_approx = correlation.mean()
+                    pred_centered = pred_flat - pred_mean
+                    ct_centered = ct_flat - ct_mean
+                    correlation = (pred_centered * ct_centered).mean(dim=1) / (
+                        torch.sqrt((pred_centered ** 2).mean(dim=1) + 1e-10) * 
+                        torch.sqrt((ct_centered ** 2).mean(dim=1) + 1e-10)
+                    )
+                    ssim_approx = torch.clamp(correlation.mean(), -1.0, 1.0)
                     
                     # Log metrics
                     self.log('val/mse', mse, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
