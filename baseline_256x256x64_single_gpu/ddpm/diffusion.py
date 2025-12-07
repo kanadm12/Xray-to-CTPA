@@ -1275,28 +1275,41 @@ class GaussianDiffusion(pl.LightningModule):
                     h_pred = self.vqgan.post_vq_conv(pred_latent_denorm)
                     pred_recon = self.vqgan.decoder(h_pred)
                     
+                    # Debug: print actual data ranges
+                    print(f"\nDEBUG Validation Metrics:")
+                    print(f"  CT range: [{ct.min().item():.4f}, {ct.max().item():.4f}]")
+                    print(f"  Pred range: [{pred_recon.min().item():.4f}, {pred_recon.max().item():.4f}]")
+                    
                     # Calculate metrics
                     mse = torch.nn.functional.mse_loss(pred_recon, ct)
                     mae = torch.nn.functional.l1_loss(pred_recon, ct)
                     
                     # PSNR: 10 * log10(max^2 / MSE)
-                    # Data range is [-1, 1] so max range = 2.0
-                    data_range = 2.0
+                    # Determine actual data range from the data
+                    actual_min = min(ct.min().item(), pred_recon.min().item())
+                    actual_max = max(ct.max().item(), pred_recon.max().item())
+                    data_range = actual_max - actual_min
                     psnr = 20 * torch.log10(torch.tensor(data_range).to(mse.device)) - 10 * torch.log10(mse + 1e-10)
                     
-                    # SSIM (approximate - full SSIM is expensive)
-                    # Use Pearson correlation as proxy
-                    pred_flat = pred_recon.view(pred_recon.shape[0], -1)
-                    ct_flat = ct.view(ct.shape[0], -1)
-                    pred_mean = pred_flat.mean(dim=1, keepdim=True)
-                    ct_mean = ct_flat.mean(dim=1, keepdim=True)
-                    pred_centered = pred_flat - pred_mean
-                    ct_centered = ct_flat - ct_mean
-                    correlation = (pred_centered * ct_centered).mean(dim=1) / (
-                        torch.sqrt((pred_centered ** 2).mean(dim=1) + 1e-10) * 
-                        torch.sqrt((ct_centered ** 2).mean(dim=1) + 1e-10)
-                    )
-                    ssim_approx = torch.clamp(correlation.mean(), -1.0, 1.0)
+                    # SSIM: Use proper structural similarity with torchmetrics
+                    from torchmetrics.functional import structural_similarity_index_measure
+                    # SSIM expects data in [0, 1] range, so normalize
+                    ct_norm = (ct - actual_min) / (data_range + 1e-10)
+                    pred_norm = (pred_recon - actual_min) / (data_range + 1e-10)
+                    # For 3D volumes, compute SSIM on 2D slices and average
+                    ssim_values = []
+                    for i in range(ct_norm.shape[2]):  # Iterate through depth
+                        slice_ssim = structural_similarity_index_measure(
+                            pred_norm[:, :, i:i+1, :, :], 
+                            ct_norm[:, :, i:i+1, :, :],
+                            data_range=1.0
+                        )
+                        ssim_values.append(slice_ssim)
+                    ssim_approx = torch.stack(ssim_values).mean()
+                    
+                    print(f"  MSE: {mse.item():.6f}, MAE: {mae.item():.6f}")
+                    print(f"  PSNR: {psnr.item():.4f} dB")
+                    print(f"  SSIM: {ssim_approx.item():.4f}")
                     
                     # Log metrics
                     self.log('val/mse', mse, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
