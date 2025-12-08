@@ -1329,6 +1329,18 @@ class GaussianDiffusion(pl.LightningModule):
         """PyTorch Lightning optimizer configuration."""
         optimizer = torch.optim.Adam(self.denoise_fn.parameters(), lr=1e-4)
         return optimizer
+    
+    def load_state_dict(self, state_dict, strict=True):
+        """Custom state dict loading to handle perceptual_model changes."""
+        # If perceptual_model is None but state_dict has perceptual_model keys, remove them
+        if self.perceptual_model is None:
+            keys_to_remove = [k for k in state_dict.keys() if k.startswith('perceptual_model.')]
+            for key in keys_to_remove:
+                del state_dict[key]
+            if keys_to_remove:
+                print(f"Removed {len(keys_to_remove)} perceptual_model keys from checkpoint (perceptual_weight=0)")
+        
+        return super().load_state_dict(state_dict, strict=strict)
 
 # trainer class
 CHANNELS_TO_MODE = {
