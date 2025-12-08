@@ -805,9 +805,12 @@ class GaussianDiffusion(pl.LightningModule):
         self.adv_loss = PatchAdversarialLoss(criterion="least_squares")
         self.optimizerD = optim.Adam(params=self.netD.parameters(), lr=1e-4)
 
-        # perceptual loss
-        self.perceptual_model = PerceptualLoss(spatial_dims=2, network_type="radimagenet_resnet50")
-        self.perceptual_model.cuda()
+        # perceptual loss (only load if weight > 0 to avoid unnecessary downloads)
+        if self.perceptual_weight > 0:
+            self.perceptual_model = PerceptualLoss(spatial_dims=2, network_type="radimagenet_resnet50")
+            self.perceptual_model.cuda()
+        else:
+            self.perceptual_model = None
 
         # For class label conditionaing
         self.text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
@@ -1021,8 +1024,11 @@ class GaussianDiffusion(pl.LightningModule):
             frames_recon_decoded = self.vae.decode(frames_recon, return_dict=False)[0] if self.vae else frames_recon               
 
         # perceptual loss
-        lpips_loss = self.perceptual_model(
-            frames_recon_decoded.float(), frames_decoded.float()).mean() * self.perceptual_weight
+        if self.perceptual_model is not None and self.perceptual_weight > 0:
+            lpips_loss = self.perceptual_model(
+                frames_recon_decoded.float(), frames_decoded.float()).mean() * self.perceptual_weight
+        else:
+            lpips_loss = torch.tensor(0.0, device=frames_decoded.device)
         return lpips_loss
 
     def disc_loss_fn(self, x_real,x_fake):
