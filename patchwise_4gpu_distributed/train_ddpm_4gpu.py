@@ -66,8 +66,8 @@ def get_dataloaders(cfg):
     )
     
     # Create dataloaders with optimized worker count
-    # Using 12 workers per GPU (48 total) - safe with persistent_workers=False
-    num_workers_per_gpu = 12
+    # Using 20 workers per GPU (80 total) - safe with persistent_workers=False and spawn context
+    num_workers_per_gpu = 20
     
     train_loader = DataLoader(
         train_dataset,
