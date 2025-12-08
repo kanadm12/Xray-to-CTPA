@@ -15,6 +15,12 @@ export NCCL_SOCKET_IFNAME=eth0
 export NCCL_TIMEOUT=1800
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
+# Performance optimizations
+export OMP_NUM_THREADS=1  # Avoid CPU oversubscription with DataLoader workers
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
 # GPU configuration
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 NUM_GPUS=4
