@@ -73,7 +73,7 @@ def get_dataloaders(cfg):
         num_workers=cfg.model.num_workers,
         pin_memory=True,
         drop_last=True,
-        persistent_workers=True if cfg.model.num_workers > 0 else False
+        persistent_workers=False  # Disable to prevent worker process accumulation
     )
     
     val_loader = DataLoader(
@@ -82,7 +82,7 @@ def get_dataloaders(cfg):
         shuffle=False,
         num_workers=cfg.model.num_workers // 2 if cfg.model.num_workers > 0 else 0,
         pin_memory=True,
-        persistent_workers=True if cfg.model.num_workers > 0 else False
+        persistent_workers=False  # Disable to prevent worker process accumulation
     )
     
     return train_loader, val_loader
