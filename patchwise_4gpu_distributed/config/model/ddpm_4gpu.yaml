@@ -6,7 +6,7 @@ vqgan_ckpt: ./outputs/vqgan_patches_4gpu/checkpoints/last.ckpt
 vae_ckpt: null
 
 # Resume training from DDPM checkpoint (optional - set to null to start fresh)
-resume_ckpt: null  # Set to checkpoint path to resume, e.g., ./checkpoints/ddpm_4gpu/last.ckpt
+resume_ckpt: ./checkpoints/ddpm_4gpu/last.ckpt  # Resume from epoch 6 with optimized settings
 
 # Latent space dimensions (derived from VQ-GAN with downsample [4,4,4])
 # Patch: 128×128×128 → Latent: 32×32×32
