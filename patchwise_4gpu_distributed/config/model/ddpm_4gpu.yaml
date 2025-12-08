@@ -16,7 +16,7 @@ diffusion_num_channels: 64   # VQ-GAN embedding_dim
 dim_mults: [1, 2, 4, 8]      # UNet channel multipliers
 
 # Training configuration
-batch_size: 1   # Per GPU (effective = 4)
+batch_size: 2   # Per GPU (effective = 8) - better GPU utilization with plenty of VRAM headroom
 num_workers: 20  # Optimized for 96 vCPUs (20 workers × 4 GPUs = 80 cores, leaving 16 for system)
 gpus: 4
 gradient_checkpointing: true  # Enable to reduce memory usage
