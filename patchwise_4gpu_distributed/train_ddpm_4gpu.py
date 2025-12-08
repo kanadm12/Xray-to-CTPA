@@ -66,7 +66,7 @@ def get_dataloaders(cfg):
     )
     
     # Create dataloaders with optimized worker count
-    # Using 20 workers per GPU (80 total) - safe with persistent_workers=False and spawn context
+    # Using 20 workers per GPU (80 total) with persistent workers for efficiency
     num_workers_per_gpu = 20
     
     train_loader = DataLoader(
@@ -76,7 +76,7 @@ def get_dataloaders(cfg):
         num_workers=num_workers_per_gpu,
         pin_memory=True,
         drop_last=True,
-        persistent_workers=False,  # Prevents worker accumulation
+        persistent_workers=True if num_workers_per_gpu > 0 else False,  # Keep workers alive for efficiency
         multiprocessing_context='spawn'  # Explicit spawn method to prevent fork issues
     )
     
@@ -86,7 +86,7 @@ def get_dataloaders(cfg):
         shuffle=False,
         num_workers=num_workers_per_gpu // 2,
         pin_memory=True,
-        persistent_workers=False,  # Prevents worker accumulation
+        persistent_workers=True if num_workers_per_gpu > 0 else False,  # Keep workers alive for efficiency
         multiprocessing_context='spawn'
     )
     
@@ -250,7 +250,14 @@ def main_wrapper():
             if resume_ckpt:
                 print(f"Resuming from checkpoint: {resume_ckpt}")
         
-        trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader, ckpt_path=resume_ckpt)
+        try:
+            trainer.fit(diffusion, train_dataloaders=train_loader, val_dataloaders=val_loader, ckpt_path=resume_ckpt)
+        finally:
+            # Ensure cleanup of dataloader workers on exit
+            if hasattr(train_loader, '_iterator') and train_loader._iterator is not None:
+                train_loader._iterator._shutdown_workers()
+            if hasattr(val_loader, '_iterator') and val_loader._iterator is not None:
+                val_loader._iterator._shutdown_workers()
         
         if local_rank == 0:
             print("\n" + "=" * 80)
