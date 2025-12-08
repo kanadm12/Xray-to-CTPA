@@ -1302,16 +1302,25 @@ class GaussianDiffusion(pl.LightningModule):
                     # SSIM expects data in [0, 1] range, so normalize
                     ct_norm = (ct - actual_min) / (data_range + 1e-10)
                     pred_norm = (pred_recon - actual_min) / (data_range + 1e-10)
-                    # For 3D volumes, compute SSIM on 2D slices and average
-                    ssim_values = []
-                    for i in range(ct_norm.shape[2]):  # Iterate through depth
-                        slice_ssim = structural_similarity_index_measure(
-                            pred_norm[:, :, i:i+1, :, :], 
-                            ct_norm[:, :, i:i+1, :, :],
+                    # Compute SSIM on full 3D volume (no slicing to avoid padding issues)
+                    try:
+                        ssim_approx = structural_similarity_index_measure(
+                            pred_norm, 
+                            ct_norm,
                             data_range=1.0
                         )
-                        ssim_values.append(slice_ssim)
-                    ssim_approx = torch.stack(ssim_values).mean()
+                    except RuntimeError as e:
+                        # Fallback to simple correlation if SSIM fails
+                        pred_flat = pred_norm.view(pred_norm.shape[0], -1)
+                        ct_flat = ct_norm.view(ct_norm.shape[0], -1)
+                        pred_centered = pred_flat - pred_flat.mean(dim=1, keepdim=True)
+                        ct_centered = ct_flat - ct_flat.mean(dim=1, keepdim=True)
+                        ssim_approx = (pred_centered * ct_centered).mean(dim=1) / (
+                            torch.sqrt((pred_centered ** 2).mean(dim=1) + 1e-10) * 
+                            torch.sqrt((ct_centered ** 2).mean(dim=1) + 1e-10)
+                        )
+                        ssim_approx = torch.clamp(ssim_approx.mean(), -1.0, 1.0)
+                        print(f"  SSIM calculation failed, using correlation: {e}")
                     
                     print(f"  MSE: {mse.item():.6f}, MAE: {mae.item():.6f}")
                     print(f"  PSNR: {psnr.item():.4f} dB")
