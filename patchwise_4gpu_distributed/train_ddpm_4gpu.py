@@ -65,9 +65,9 @@ def get_dataloaders(cfg):
         normalization=cfg.dataset.get('normalization', 'min_max')
     )
     
-    # Create dataloaders with reduced workers to prevent process explosion
-    # Using 4 workers per GPU (16 total) instead of 20 per GPU (80 total)
-    num_workers_per_gpu = 4
+    # Create dataloaders with optimized worker count
+    # Using 12 workers per GPU (48 total) - safe with persistent_workers=False
+    num_workers_per_gpu = 12
     
     train_loader = DataLoader(
         train_dataset,
@@ -76,7 +76,7 @@ def get_dataloaders(cfg):
         num_workers=num_workers_per_gpu,
         pin_memory=True,
         drop_last=True,
-        persistent_workers=False,
+        persistent_workers=False,  # Prevents worker accumulation
         multiprocessing_context='spawn'  # Explicit spawn method to prevent fork issues
     )
     
@@ -86,7 +86,7 @@ def get_dataloaders(cfg):
         shuffle=False,
         num_workers=num_workers_per_gpu // 2,
         pin_memory=True,
-        persistent_workers=False,
+        persistent_workers=False,  # Prevents worker accumulation
         multiprocessing_context='spawn'
     )
     
