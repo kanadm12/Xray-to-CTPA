@@ -25,6 +25,13 @@ sys.path.insert(0, current_dir)
 from ddpm.diffusion import Unet3D, GaussianDiffusion
 from vq_gan_3d.model.vqgan import VQGAN
 
+# Fix PyTorch 2.6 weights_only security for OmegaConf
+try:
+    import omegaconf
+    torch.serialization.add_safe_globals([omegaconf.dictconfig.DictConfig])
+except:
+    pass
+
 
 def load_xray(xray_path, device='cuda'):
     """Load and preprocess X-ray for MedCLIP."""
@@ -41,12 +48,24 @@ def load_xray(xray_path, device='cuda'):
 def load_models(ddpm_ckpt, vqgan_ckpt, device='cuda'):
     """Load DDPM and VQ-GAN models."""
     print("Loading VQ-GAN...")
-    vqgan = VQGAN.load_from_checkpoint(vqgan_ckpt)
+    # Monkey patch PyTorch Lightning to use weights_only=False
+    import pytorch_lightning as pl
+    original_load = torch.load
+    def patched_load(*args, **kwargs):
+        kwargs['weights_only'] = False
+        return original_load(*args, **kwargs)
+    torch.load = patched_load
+    
+    try:
+        vqgan = VQGAN.load_from_checkpoint(vqgan_ckpt)
+    finally:
+        torch.load = original_load  # Restore original
+    
     vqgan = vqgan.to(device)
     vqgan.eval()
     
     print("Loading DDPM...")
-    checkpoint = torch.load(ddpm_ckpt, map_location=device)
+    checkpoint = torch.load(ddpm_ckpt, map_location=device, weights_only=False)
     hparams = checkpoint.get('hyper_parameters', {})
     
     model = Unet3D(
