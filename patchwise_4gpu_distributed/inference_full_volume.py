@@ -68,18 +68,35 @@ def load_models(ddpm_ckpt, vqgan_ckpt, device='cuda'):
     checkpoint = torch.load(ddpm_ckpt, map_location=device, weights_only=False)
     hparams = checkpoint.get('hyper_parameters', {})
     
-    # Get the correct channels from checkpoint (32 for patchwise, 64 for full volume)
-    channels = hparams.get('channels', 32)
-    image_size = hparams.get('image_size', 64)
-    num_frames = hparams.get('num_frames', 32)
+    # Get architecture params - 'channels' in GaussianDiffusion is VQ-GAN embedding dim
+    # image_size is the spatial dimension (H,W) of latent space
+    channels = hparams.get('channels', 64)  # VQ-GAN embedding_dim (usually 64)
+    image_size = hparams.get('image_size', 64)  # Latent spatial size
+    num_frames = hparams.get('num_frames', 32)  # Latent depth size
     
-    print(f"DDPM hyperparameters: image_size={image_size}, num_frames={num_frames}, channels={channels}")
+    # Unet3D 'dim' is base feature dimension, 'channels' is input/output channels
+    # For the checkpoint, we need to infer dim from the first conv layer
+    state_dict = checkpoint['state_dict']
+    # denoise_fn.init_conv.weight shape is [out_ch, in_ch, ...]
+    init_conv_shape = state_dict.get('denoise_fn.init_conv.weight', None)
+    if init_conv_shape is not None:
+        unet_dim = init_conv_shape.shape[0]  # Output channels of first conv = dim
+        unet_channels = init_conv_shape.shape[1]  # Input channels = VQ-GAN embedding_dim
+    else:
+        # Fallback
+        unet_dim = 32
+        unet_channels = channels
+    
+    print(f"DDPM hyperparameters:")
+    print(f"  image_size={image_size}, num_frames={num_frames}")
+    print(f"  VQ-GAN channels={channels}")
+    print(f"  Unet3D dim={unet_dim}, channels={unet_channels}")
     
     model = Unet3D(
-        dim=image_size,
+        dim=unet_dim,
         cond_dim=512,
         dim_mults=[1, 2, 4, 8],
-        channels=channels,
+        channels=unet_channels,
         resnet_groups=8,
         classifier_free_guidance=False,
         medclip=True
