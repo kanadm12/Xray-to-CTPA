@@ -68,11 +68,18 @@ def load_models(ddpm_ckpt, vqgan_ckpt, device='cuda'):
     checkpoint = torch.load(ddpm_ckpt, map_location=device, weights_only=False)
     hparams = checkpoint.get('hyper_parameters', {})
     
+    # Get the correct channels from checkpoint (32 for patchwise, 64 for full volume)
+    channels = hparams.get('channels', 32)
+    image_size = hparams.get('image_size', 64)
+    num_frames = hparams.get('num_frames', 32)
+    
+    print(f"DDPM hyperparameters: image_size={image_size}, num_frames={num_frames}, channels={channels}")
+    
     model = Unet3D(
-        dim=hparams.get('image_size', 64),
+        dim=image_size,
         cond_dim=512,
         dim_mults=[1, 2, 4, 8],
-        channels=64,
+        channels=channels,
         resnet_groups=8,
         classifier_free_guidance=False,
         medclip=True
@@ -81,9 +88,9 @@ def load_models(ddpm_ckpt, vqgan_ckpt, device='cuda'):
     diffusion = GaussianDiffusion(
         model,
         vqgan_ckpt=None,
-        image_size=hparams.get('image_size', 64),
-        num_frames=hparams.get('num_frames', 32),
-        channels=64,
+        image_size=image_size,
+        num_frames=num_frames,
+        channels=channels,
         timesteps=1000,
         loss_type='l1',
         img_cond=True,
